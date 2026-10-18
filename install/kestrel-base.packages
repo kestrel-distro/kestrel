@@ -106,6 +106,7 @@ qt6-svg
 qt6-wayland
 realtime-privileges
 ripgrep
+rtirq
 rtkit
 ruby
 sddm

@@ -25,6 +25,13 @@ systemctl enable scx_loader.service
 systemctl enable kestrel-damon-reclaim.service
 systemctl enable ananicy-cpp.service
 
+# IRQ and timer: `threadirqs` on the kernel command line turns device IRQ
+# handlers into threads, and rtirq raises the priority of the audio, input and
+# GPU ones so they preempt ordinary work. Both units are inert when threadirqs
+# is not set (there are no IRQ threads to raise). See C2.3 of the kernel plan.
+systemctl enable rtirq.service
+systemctl enable rtirq-resume.service
+
 # Default optimizations: keep the SSD trimmed, watch disk health, refresh the
 # Arch mirror list, and scrub Btrfs where the root filesystem is Btrfs.
 systemctl enable fstrim.timer
