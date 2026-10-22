@@ -1,0 +1,13 @@
+# Kestrel class: background work.
+#
+# Indexers, sync daemons and anything that is a class down from interactive:
+# lowest weight, first to be throttled. The broker moves in what it classifies
+# as background; systemd's own app.slice remains the default for everything it
+# has not touched.
+
+[Unit]
+Description=Kestrel class: background work
+
+[Slice]
+CPUWeight=50
+IOWeight=50

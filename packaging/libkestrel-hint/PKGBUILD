@@ -1,0 +1,27 @@
+# Maintainer: Kestrel <https://github.com/kestrel-distro>
+#
+# Builds libkestrel-hint from the payload checkout. The Makefile is in
+# install/helpers/libkestrel-hint; this PKGBUILD lives two levels below the
+# repository root and builds in place.
+
+pkgname=libkestrel-hint
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Userspace for the Kestrel per-task scheduling hint (sched_setattr wrapper)"
+arch=(x86_64)
+url="https://github.com/kestrel-distro/kestrel"
+license=(GPL-2.0-only)
+depends=()
+makedepends=(gcc make)
+source=()
+sha256sums=()
+
+build() {
+    cd "${startdir}/../.."
+    make -C install/helpers/libkestrel-hint
+}
+
+package() {
+    cd "${startdir}/../.."
+    make -C install/helpers/libkestrel-hint DESTDIR="$pkgdir" PREFIX=/usr install
+}

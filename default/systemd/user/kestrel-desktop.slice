@@ -1,0 +1,11 @@
+# Kestrel class: compositor-adjacent, latency critical.
+#
+# Hyprland itself stays in session.slice; this class carries the shell
+# (Quickshell) and other work that must return to the compositor quickly.
+
+[Unit]
+Description=Kestrel class: compositor-adjacent, latency critical
+
+[Slice]
+CPUWeight=1000
+IOWeight=1000

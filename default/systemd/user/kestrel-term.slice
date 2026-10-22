@@ -1,0 +1,13 @@
+# Kestrel class: interactive terminals (Ghostty and friends).
+#
+# Kept eligible for systemd-oomd so memory pressure takes a terminal rather
+# than the compositor, matching app.slice.d/10-oomd.conf.
+
+[Unit]
+Description=Kestrel class: interactive terminals
+
+[Slice]
+CPUWeight=300
+IOWeight=500
+ManagedOOMMemoryPressure=kill
+ManagedOOMSwap=kill

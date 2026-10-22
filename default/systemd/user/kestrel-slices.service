@@ -1,0 +1,23 @@
+# Create the Kestrel resource class slices at session start.
+#
+# A slice only exists once something starts it. kestrel-broker places tasks by
+# writing cgroup.procs, which needs the class cgroups to exist first, so this
+# oneshot materialises the whole tree before the broker runs.
+
+[Unit]
+Description=Create the Kestrel resource class slices
+After=basic.target
+Before=kestrel-broker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/systemctl --user start \
+  kestrel-desktop.slice \
+  kestrel-term.slice \
+  kestrel-browser.slice \
+  kestrel-game.slice \
+  kestrel-background.slice
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,15 @@
+# Kestrel class: browsers and their content processes.
+#
+# kestrel-broker sets memory.high and issues memory.reclaim here for background
+# tabs, and systemd-oomd may kill it under pressure. Zen chrome and content
+# processes are both placed here; the active tab is boosted by raising its
+# cpu.weight via the broker, not by leaving this class.
+
+[Unit]
+Description=Kestrel class: browsers and content processes
+
+[Slice]
+CPUWeight=200
+IOWeight=300
+ManagedOOMMemoryPressure=kill
+ManagedOOMSwap=kill

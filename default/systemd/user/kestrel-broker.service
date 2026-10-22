@@ -1,0 +1,22 @@
+[Unit]
+Description=Place desktop apps into Kestrel resource classes
+Documentation=man:hyprctl(1)
+# The class slices must exist before the broker can place into them.
+After=graphical-session.target kestrel-slices.service
+Wants=kestrel-slices.service
+PartOf=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+# Set by kestrel-toggle if the bridge is ever made switchable.
+ConditionPathExists=!%h/.local/state/kestrel/toggles/kernel-bridge-off
+
+[Service]
+Type=simple
+# Run inside kestrel.slice rather than app.slice, so systemd-oomd's
+# app.slice kill candidacy never targets the thing that classifies the session.
+Slice=kestrel.slice
+ExecStart=/usr/bin/kestrel-broker
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

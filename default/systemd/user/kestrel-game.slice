@@ -1,0 +1,12 @@
+# Kestrel class: games.
+#
+# The broker moves a focused, fullscreen game here and asks the power profile
+# manager to raise performance; scx_kestrel gives it a short slice and a
+# latency boost. It is not an oomd kill candidate.
+
+[Unit]
+Description=Kestrel class: games
+
+[Slice]
+CPUWeight=800
+IOWeight=800

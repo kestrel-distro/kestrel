@@ -1,0 +1,31 @@
+# Maintainer: Kestrel <https://github.com/kestrel-distro>
+#
+# Packages kestrel-broker and the kestrel.slice class units from the payload
+# checkout. No build step: the broker is a shell script and the slices are
+# systemd user units.
+
+pkgname=kestrel-broker
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Place desktop apps into Kestrel resource classes for scx_kestrel"
+arch=(any)
+url="https://github.com/kestrel-distro/kestrel"
+license=(GPL-2.0-only)
+depends=(jq socat)
+optdepends=("hyprland: window focus events")
+makedepends=()
+source=()
+sha256sums=()
+
+package() {
+    cd "${startdir}/../.."
+
+    install -Dm755 bin/kestrel-broker "$pkgdir/usr/bin/kestrel-broker"
+
+    local u
+    for u in kestrel.slice kestrel-desktop.slice kestrel-term.slice \
+        kestrel-browser.slice kestrel-game.slice kestrel-background.slice \
+        kestrel-slices.service kestrel-broker.service; do
+        install -Dm644 "default/systemd/user/$u" "$pkgdir/usr/lib/systemd/user/$u"
+    done
+}

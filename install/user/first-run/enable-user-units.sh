@@ -18,4 +18,6 @@ systemctl --user enable --now \
   kestrel-sleep-lock.service \
   kestrel-migrate-notify.service \
   kestrel-fcitx5.service \
-  kestrel-crash-watch.service
+  kestrel-crash-watch.service \
+  kestrel-slices.service \
+  kestrel-broker.service

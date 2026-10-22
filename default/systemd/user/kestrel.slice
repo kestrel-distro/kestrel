@@ -1,0 +1,23 @@
+# Kestrel resource classes.
+#
+# This hierarchy is the kernel-visible contract between the desktop and the
+# scheduler / reclaim policy: every application class is a slice under
+# kestrel.slice, and the per-class weights and limits are what scx_kestrel
+# (layers) and kestrel-broker (cpu.weight, memory.high, memory.reclaim,
+# io.weight) both key on. Nothing here moves a process by itself; the broker
+# places tasks into a class and adjusts the dynamic limits at runtime.
+#
+# Unit nesting follows systemd's dash convention, so kestrel-desktop.slice is a
+# child of this slice. The compositor stays in session.slice, where systemd's
+# structural oomd protection already keeps it out of the kill candidate pool;
+# only its clients are moved here.
+#
+# Contract and policy: docs/03-kernel.md (Kestrel kernel bridge).
+
+[Unit]
+Description=Kestrel resource classes
+
+[Slice]
+CPUAccounting=yes
+MemoryAccounting=yes
+IOAccounting=yes

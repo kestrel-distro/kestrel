@@ -1,0 +1,165 @@
+#!/bin/bash
+
+# kestrel:summary=Place desktop apps into Kestrel resource classes
+# kestrel:group=performance
+# kestrel:hidden=true
+
+# The userspace half of the kernel bridge. It watches the compositor, classifies
+# the focused window, and moves the owning process into the matching class
+# cgroup (kestrel.slice, see docs/03-kernel.md). Everything it does is a
+# delegated, unprivileged operation: cgroup placement, cpu.weight, memory.high
+# and memory.reclaim on the user's own cgroups. It never calls sudo and never
+# needs CAP_BPF.
+#
+# The other half is scx_kestrel, which reads the class (and, once the kernel
+# patch lands, the per-task hint) with no knowledge of this process.
+#
+# Debug: `kestrel-broker --once` places once and exits.
+
+set -euo pipefail
+
+default_class_root() {
+  # User slices live under the user manager's delegated subtree, not at the
+  # cgroup root: /sys/fs/cgroup/user.slice/user-<uid>.slice/user@<uid>.service.
+  local base="/sys/fs/cgroup/user.slice/user-$(id -u).slice" d
+  for d in "$base"/user@*.service; do
+    [[ -d $d ]] && { printf '%s/kestrel.slice' "$d"; return; }
+  done
+  printf '%s/kestrel.slice' "$base"
+}
+
+CLASS_ROOT="${KESTREL_BROKER_CLASS_ROOT:-$(default_class_root)}"
+RECLAIM_PSI="${KESTREL_BROKER_RECLAIM_PSI:-10.00}"   # some.avg60 %, above which we reclaim
+RECLAIM_BYTES="${KESTREL_BROKER_RECLAIM_BYTES:-256M}" # per reclaim pass
+RECLAIM_EVERY="${KESTREL_BROKER_RECLAIM_EVERY:-5}"    # seconds between pressure checks
+BG_MEMORY_HIGH="${KESTREL_BROKER_BG_MEMORY_HIGH:-2G}" # soft cap on background browser memory
+POLL="${KESTREL_BROKER_POLL:-0.25}"                   # fallback poll interval (no socat)
+
+log() { printf 'kestrel-broker: %s\n' "$*" >&2; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Map a Hyprland window class to a Kestrel class. Unknown classes are left
+# where they are: the broker only moves what it can classify, so an app it has
+# never heard of keeps systemd's default placement.
+classify() {
+  case "${1,,}" in
+    *ghostty*) echo term ;;
+    *zen* | *firefox*) echo browser ;;
+    *) echo "" ;;
+  esac
+}
+
+class_dir() { echo "$CLASS_ROOT/kestrel-$1.slice"; }
+
+ensure_dir() {
+  [[ -d $1 ]] || mkdir -p "$1" 2>/dev/null || return 1
+}
+
+move_pid() {
+  local pid="$1" dir="$2"
+  [[ -n $pid && $pid != "null" && -d /proc/$pid ]] || return 0
+  ensure_dir "$dir" || return 0
+  printf '%s' "$pid" >"$dir/cgroup.procs" 2>/dev/null || true
+}
+
+# The focused window's pid and class, tab-separated.
+focused() {
+  hyprctl -j activewindow 2>/dev/null |
+    jq -r '[.pid // "", .class // ""] | @tsv' 2>/dev/null || printf '\t'
+}
+
+setup() {
+  local c
+  for c in desktop term browser game background; do
+    ensure_dir "$(class_dir "$c")" || true
+  done
+  # The browser class splits into an active bucket (boosted) and a background
+  # bucket (soft-capped, reclaimed). Both are plain child cgroups under the
+  # systemd slice; the broker owns their dynamic limits.
+  ensure_dir "$(class_dir browser)/active" || true
+  ensure_dir "$(class_dir browser)/background" || true
+  printf '1000' >"$(class_dir browser)/active/cpu.weight" 2>/dev/null || true
+  printf '100' >"$(class_dir browser)/background/cpu.weight" 2>/dev/null || true
+  printf '%s' "$BG_MEMORY_HIGH" >"$(class_dir browser)/background/memory.high" 2>/dev/null || true
+}
+
+place() {
+  local pid class kclass
+  read -r pid class < <(focused)
+  kclass="$(classify "$class")"
+
+  # A browser that loses focus drops to the background bucket so reclaim can
+  # find it; the newly focused one is promoted to the boosted bucket.
+  if [[ -n $PLACED_PID && $PLACED_PID != "$pid" && $PLACED_CLASS == browser ]]; then
+    move_pid "$PLACED_PID" "$(class_dir browser)/background"
+  fi
+  if [[ -n $kclass ]]; then
+    if [[ $kclass == browser ]]; then
+      move_pid "$pid" "$(class_dir browser)/active"
+    else
+      move_pid "$pid" "$(class_dir "$kclass")"
+    fi
+  fi
+  PLACED_PID="$pid"
+  PLACED_CLASS="$kclass"
+}
+PLACED_PID=""
+PLACED_CLASS=""
+
+# Reclaim background browser memory only under real pressure. PSI gates it so
+# an idle session pays nothing; /proc/pressure/memory is world-readable.
+maybe_reclaim() {
+  (( SECONDS - LAST_RECLAIM < RECLAIM_EVERY )) && return 0
+  LAST_RECLAIM=$SECONDS
+  local avg bg
+  avg="$(awk '/^some/ { for (i = 1; i <= NF; i++) if ($i ~ /^avg60=/) { sub(/avg60=/, "", $i); print $i } }' \
+    /proc/pressure/memory 2>/dev/null)"
+  [[ -n $avg ]] || return 0
+  awk -v a="$avg" -v t="$RECLAIM_PSI" 'BEGIN { exit !(a > t) }' || return 0
+  bg="$(class_dir browser)/background"
+  [[ -d $bg && -s "$bg/cgroup.procs" ]] || return 0
+  printf '%s' "$RECLAIM_BYTES" >"$bg/memory.reclaim" 2>/dev/null || true
+}
+LAST_RECLAIM=0
+
+poll_loop() {
+  while :; do
+    place
+    maybe_reclaim
+    sleep "$POLL"
+  done
+}
+
+# Prefer the compositor's event socket: one cheap stream instead of a hyprctl
+# spawn four times a second. Fall back to polling when socat or the socket is
+# missing.
+event_loop() {
+  local sock="$XDG_RUNTIME_DIR/hypr/${HYPRLAND_INSTANCE_SIGNATURE}/.socket2.sock"
+  socat -U - "UNIX-CONNECT:$sock" 2>/dev/null |
+    while IFS= read -r line; do
+      case "${line%%>>*}" in
+        activewindow | openwindow | closewindow | movewindow | fullscreen | workspace)
+          place
+          maybe_reclaim
+          ;;
+      esac
+    done
+}
+
+main() {
+  setup
+  place
+  if [[ ${1:-} == --once ]]; then
+    return 0
+  fi
+  if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && have socat &&
+    [[ -S $XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock ]]; then
+    log "watching the compositor event socket"
+    event_loop
+  else
+    log "polling every ${POLL}s"
+    poll_loop
+  fi
+}
+
+main "$@"
