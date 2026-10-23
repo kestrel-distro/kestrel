@@ -28,7 +28,7 @@ USAGE
 }
 
 command -v scxctl >/dev/null || {
-  echo "scxctl not found; install scx-tools" >&2
+  echo "scxctl not found; install scx-tools-kestrel" >&2
   exit 1
 }
 

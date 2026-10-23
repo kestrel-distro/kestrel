@@ -1,7 +1,7 @@
 # Kestrel sched_ext configuration for scx_loader. scx_loader starts this
 # scheduler on boot and exposes runtime switching over D-Bus (`kestrel scx`,
 # which wraps scxctl). Lookup order puts this file first, so it overrides any
-# template shipped by scx-tools at /usr/share/scx_loader/config.toml.
+# template shipped by scx-tools-kestrel at /usr/share/scx_loader/config.toml.
 #
 # bpfland is a vruntime scheduler that prioritizes interactive workloads, which
 # is what a Hyprland desktop is. "Auto" leaves the per-scheduler tuning at the
