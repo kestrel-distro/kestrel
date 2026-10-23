@@ -32,7 +32,7 @@ pipewire-alsa
 pipewire-jack
 pipewire-pulse
 scx-scheds
-scx-tools
+scx-tools-kestrel
 snapper
 sof-firmware
 thermald

@@ -8,3 +8,14 @@
 # loader's defaults; use `kestrel scx switch <name> <mode>` to change at runtime.
 default_sched = "scx_bpfland"
 default_mode = "Auto"
+
+# scx_kestrel takes its layer set as an argument. The scx-kestrel package
+# installs the baked config; every mode passes the same file because the
+# scheduler has no built-in layer set of its own. The default stays bpfland
+# until the bench session shows a win.
+[scheds.scx_kestrel]
+auto_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
+gaming_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
+lowlatency_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
+powersave_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
+server_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
