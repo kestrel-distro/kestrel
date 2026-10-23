@@ -34,6 +34,7 @@ RECLAIM_BYTES="${KESTREL_BROKER_RECLAIM_BYTES:-256M}" # per reclaim pass
 RECLAIM_EVERY="${KESTREL_BROKER_RECLAIM_EVERY:-5}"    # seconds between pressure checks
 BG_MEMORY_HIGH="${KESTREL_BROKER_BG_MEMORY_HIGH:-2G}" # soft cap on background browser memory
 POLL="${KESTREL_BROKER_POLL:-0.25}"                   # fallback poll interval (no socat)
+DRY_RUN="${KESTREL_BROKER_DRY_RUN:-0}"                # print moves instead of writing
 
 log() { printf 'kestrel-broker: %s\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -58,8 +59,38 @@ ensure_dir() {
 move_pid() {
   local pid="$1" dir="$2"
   [[ -n $pid && $pid != "null" && -d /proc/$pid ]] || return 0
+  if [[ $DRY_RUN == 1 ]]; then
+    log "move $pid -> $dir"
+    return 0
+  fi
   ensure_dir "$dir" || return 0
-  printf '%s' "$pid" >"$dir/cgroup.procs" 2>/dev/null || true
+  printf '%s\n' "$pid" >>"$dir/cgroup.procs" 2>/dev/null || true
+}
+
+# Every live process in a tree, parents before children. Content processes are
+# reparented under the browser process, so moving only the focused pid would
+# leave the renderers where they were.
+tree_pids() {
+  local root="$1" stack=("$1") seen=() pid child f
+  while (( ${#stack[@]} )); do
+    pid="${stack[-1]}"
+    unset 'stack[-1]'
+    [[ -n ${seen[$pid]:-} ]] && continue
+    seen[$pid]=1
+    printf '%s\n' "$pid"
+    for f in /proc/"$pid"/task/*/children; do
+      [[ -r $f ]] || continue
+      for child in $(<"$f"); do stack+=("$child"); done
+    done
+  done
+}
+
+move_tree() {
+  local pid="$1" dir="$2" p
+  [[ -n $pid && $pid != "null" && -d /proc/$pid ]] || return 0
+  while IFS= read -r p; do
+    move_pid "$p" "$dir"
+  done < <(tree_pids "$pid")
 }
 
 # The focused window's pid and class, tab-separated.
@@ -91,14 +122,14 @@ place() {
   # A browser that loses focus drops to the background bucket so reclaim can
   # find it; the newly focused one is promoted to the boosted bucket.
   if [[ -n $PLACED_PID && $PLACED_PID != "$pid" && $PLACED_CLASS == browser ]]; then
-    move_pid "$PLACED_PID" "$(class_dir browser)/background"
+    move_tree "$PLACED_PID" "$(class_dir browser)/background"
   fi
   if [[ -n $kclass ]]; then
-    if [[ $kclass == browser ]]; then
-      move_pid "$pid" "$(class_dir browser)/active"
-    else
-      move_pid "$pid" "$(class_dir "$kclass")"
-    fi
+    case "$kclass" in
+      browser) move_tree "$pid" "$(class_dir browser)/active" ;;
+      term) move_tree "$pid" "$(class_dir term)" ;;
+      *) move_pid "$pid" "$(class_dir "$kclass")" ;;
+    esac
   fi
   PLACED_PID="$pid"
   PLACED_CLASS="$kclass"

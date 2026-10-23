@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+BROKER="$ROOT/bin/kestrel-broker"
+TMP=$(mktemp -d)
+HYPR_FILE="$TMP/hypr"
+BROKER_PID=""
+SLEEP_PIDS=()
+
+cleanup() {
+  [[ -n $BROKER_PID ]] && kill "$BROKER_PID" 2>/dev/null || true
+  for pid in "${SLEEP_PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
+
+pass() { printf 'ok - %s\n' "$1"; }
+fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
+
+mkdir -p "$TMP/bin" "$TMP/class"
+
+cat >"$TMP/bin/hyprctl" <<'HYPR'
+#!/bin/bash
+read -r pid class <"$KESTREL_TEST_HYPR"
+printf '{"pid": %s, "class": "%s"}\n' "$pid" "$class"
+HYPR
+chmod +x "$TMP/bin/hyprctl"
+
+export PATH="$TMP/bin:$PATH"
+export KESTREL_TEST_HYPR="$HYPR_FILE"
+export KESTREL_BROKER_CLASS_ROOT="$TMP/class"
+export KESTREL_BROKER_POLL=0.05
+unset HYPRLAND_INSTANCE_SIGNATURE
+
+# A process with a child, so tree_pids() has something to walk.
+bash -c 'sleep 60 & wait' &
+BROWSER=$!
+SLEEP_PIDS+=("$BROWSER")
+child=$(pgrep -P "$BROWSER" sleep | head -1)
+[[ -n $child ]] || fail "spawned browser child"
+
+sleep 60 &
+TERM=$!
+SLEEP_PIDS+=("$TERM")
+
+# Dry run must not touch the cgroups.
+printf '%s zen\n' "$BROWSER" >"$HYPR_FILE"
+out=$(KESTREL_BROKER_DRY_RUN=1 "$BROKER" --once 2>&1)
+[[ $out == *"move $BROWSER -> $TMP/class/kestrel-browser.slice/active"* ]] \
+  || fail "dry run reports the browser move"
+[[ $out == *"move $child ->"* ]] || fail "dry run walks the browser tree"
+[[ ! -e $TMP/class/kestrel-browser.slice/active/cgroup.procs ]] \
+  || fail "dry run wrote a cgroup"
+pass "dry run reports the tree without writing"
+
+# Polling run: browser first, then a terminal steals focus, demoting the tree.
+"$BROKER" >"$TMP/broker.log" 2>&1 &
+BROKER_PID=$!
+printf '%s zen\n' "$BROWSER" >"$HYPR_FILE"
+sleep 0.4
+active="$TMP/class/kestrel-browser.slice/active/cgroup.procs"
+[[ -s $active ]] && grep -qx "$BROWSER" "$active" || fail "browser moved to active"
+[[ -s $active ]] && grep -qx "$child" "$active" || fail "browser child moved to active"
+
+printf '%s ghostty\n' "$TERM" >"$HYPR_FILE"
+sleep 0.4
+bg="$TMP/class/kestrel-browser.slice/background/cgroup.procs"
+term="$TMP/class/kestrel-term.slice/cgroup.procs"
+grep -qx "$BROWSER" "$bg" || fail "unfocused browser demoted to background"
+grep -qx "$child" "$bg" || fail "unfocused browser child demoted to background"
+grep -qx "$TERM" "$term" || fail "terminal placed in term"
+pass "focus change moves the whole browser tree"
+
+printf '1..2\n'
