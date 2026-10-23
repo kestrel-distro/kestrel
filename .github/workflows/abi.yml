@@ -1,0 +1,42 @@
+name: abi
+
+# The Kestrel hint ABI is duplicated across the kernel patch, libkestrel-hint,
+# three app forks and the Firefox patch. This checks the copies still agree
+# before a kernel or app build turns the drift into a scheduler that matches
+# nothing.
+
+on:
+  push:
+    paths:
+      - 'scripts/check-kestrel-abi.py'
+      - '.github/workflows/abi.yml'
+      - 'install/helpers/libkestrel-hint/**'
+      - 'default/systemd/user/**'
+      - 'bin/kestrel-broker'
+  pull_request:
+    paths:
+      - 'scripts/check-kestrel-abi.py'
+      - '.github/workflows/abi.yml'
+      - 'install/helpers/libkestrel-hint/**'
+      - 'default/systemd/user/**'
+      - 'bin/kestrel-broker'
+  workflow_dispatch:
+
+jobs:
+  abi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the sibling copies
+        run: |
+          set -euo pipefail
+          for repo in kernel scx hyprland quickshell ghostty docs zen-browser; do
+            git clone --quiet --depth 1 \
+              "https://github.com/kestrel-distro/$repo.git" "../$repo"
+          done
+
+      - name: Check the hint ABI
+        env:
+          KESTREL_ABI_REQUIRE: '1'
+        run: python3 scripts/check-kestrel-abi.py
