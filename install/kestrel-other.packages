@@ -42,3 +42,8 @@ vulkan-intel
 vulkan-radeon
 webp-pixbuf-loader
 zram-generator
+libkestrel-hint
+kestrel-broker
+scx-kestrel
+ghostty-kestrel
+zen-browser-bin
