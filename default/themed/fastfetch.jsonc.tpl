@@ -7,7 +7,7 @@
         "type": "file",
         "source": "~/.config/kestrel/branding/about.txt",
         "color": {
-            "1": "{{ accent }}"
+            "1": "#{{ accent_strip }}"
         },
         "padding": {
             "top": 2,
@@ -25,7 +25,7 @@
         {
             "type": "custom",
             "format": "┌{$1}{$1}┐",
-            "outputColor": "{{ muted }}"
+            "outputColor": "#{{ muted_strip }}"
         },
         {
             "type": "title",
@@ -34,7 +34,7 @@
         {
             "type": "custom",
             "format": "└{$1}{$1}┘",
-            "outputColor": "{{ muted }}"
+            "outputColor": "#{{ muted_strip }}"
         },
         {
             "type": "custom",
@@ -43,119 +43,119 @@
         {
             "type": "custom",
             "format": "┌{$1}{$1}┐",
-            "outputColor": "{{ muted }}"
+            "outputColor": "#{{ muted_strip }}"
         },
         {
             "type": "command",
             "key": "{icon} OS",
-            "keyColor": "{{ yellow }}",
+            "keyColor": "#{{ yellow_strip }}",
             "text": "echo \"Kestrel $(kestrel-version) $(uname -m)\""
         },
         {
             "type": "command",
             "key": "│ ├",
-            "keyColor": "{{ yellow }}",
+            "keyColor": "#{{ yellow_strip }}",
             "text": "echo \"Kestrel $(uname -r)\""
         },
         {
             "type": "packages",
             "key": "│ ├󰏖",
-            "keyColor": "{{ yellow }}"
+            "keyColor": "#{{ yellow_strip }}"
         },
         {
             "type": "shell",
             "key": "│ └",
-            "keyColor": "{{ yellow }}"
+            "keyColor": "#{{ yellow_strip }}"
         },
         {
             "type": "wm",
             "key": " DE/WM",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "lm",
             "key": "│ ├󰧨",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "wmtheme",
             "key": "│ ├󰉼",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "icons",
             "key": "│ ├󰀻",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "terminal",
             "key": "│ ├",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "wallpaper",
             "key": "│ └󰸉",
-            "keyColor": "{{ blue }}"
+            "keyColor": "#{{ blue_strip }}"
         },
         {
             "type": "host",
             "key": "󰌢 PC",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "cpu",
             "key": "│ ├󰻠",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "gpu",
             "key": "│ ├󰍛",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "disk",
             "key": "│ ├",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "memory",
             "key": "│ ├󰑭",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "swap",
             "key": "│ ├󰓡",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "uptime",
             "key": "│ ├󰅐",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "display",
             "key": "│ └󰍹",
-            "keyColor": "{{ green }}"
+            "keyColor": "#{{ green_strip }}"
         },
         {
             "type": "sound",
             "key": " SND",
-            "keyColor": "{{ cyan }}"
+            "keyColor": "#{{ cyan_strip }}"
         },
         {
             "type": "player",
             "key": "│ ├󰥠",
-            "keyColor": "{{ cyan }}"
+            "keyColor": "#{{ cyan_strip }}"
         },
         {
             "type": "media",
             "key": "│ └󰝚",
-            "keyColor": "{{ cyan }}"
+            "keyColor": "#{{ cyan_strip }}"
         },
         {
             "type": "custom",
             "format": "└{$1}{$1}┘",
-            "outputColor": "{{ muted }}"
+            "outputColor": "#{{ muted_strip }}"
         },
         "break",
         {
