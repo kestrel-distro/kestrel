@@ -109,6 +109,7 @@ install_file "$src/default/fontconfig/conf.avail/50-kestrel.conf" /usr/share/fon
 ln -sfn /usr/share/fontconfig/conf.avail/50-kestrel.conf /etc/fonts/conf.d/50-kestrel.conf
 
 install_file "$src/default/applications/mimeapps.list" /usr/share/applications/mimeapps.list
+install_file "$src/applications/footclient.desktop" /usr/share/applications/footclient.desktop
 
 copy_tree "$src/default/fonts/kestrel" /usr/share/fonts/kestrel 644
 copy_tree "$src/default/plymouth" /usr/share/plymouth/themes/kestrel 644
