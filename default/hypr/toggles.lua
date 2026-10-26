@@ -6,8 +6,8 @@ package.path = toggles_dir .. "/?.lua;" .. package.path
 
 -- touchpad-disabled.lua / touchscreen-disabled.lua were generated Lua in older
 -- versions and could carry an injected USB device name. They must never be loaded
--- as code again: exclude them so a not-yet-migrated install cannot execute a
--- leftover payload on reload. The migration recovers the name and deletes them.
+-- as code again: exclude them so a leftover file cannot execute a payload on
+-- reload.
 require_all.files(toggles_dir, nil, {
   reload = true,
   exclude = {

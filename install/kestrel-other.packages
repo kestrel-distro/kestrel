@@ -20,10 +20,8 @@ libva-intel-driver
 libva-nvidia-driver
 libvpl
 limine
-linux
 linux-firmware
 linux-firmware-marvell
-linux-headers
 lsp-plugins-lv2
 nvidia-open-dkms
 nvidia-utils

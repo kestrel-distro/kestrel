@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "eclipse.cpu",
+  "name": "CPU",
+  "version": "1.0.0",
+  "author": "eclipse",
+  "description": "CPU usage; click opens btop",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Cpu.qml"
+  },
+  "barWidget": {
+    "displayName": "CPU",
+    "description": "CPU usage readout, click opens btop",
+    "category": "System",
+    "allowMultiple": false
+  }
+}

@@ -5,16 +5,18 @@
 
 colors_toml=$HOME/.local/state/kestrel/current/theme/colors.toml
 
-if [[ ! -f $colors_toml ]] || ! pgrep -x foot >/dev/null; then
+if [[ ! -f $colors_toml ]] || ! pgrep -x 'foot|footclient' >/dev/null; then
   exit 0
 fi
 
 foot_osc=$(kestrel-theme-osc "$colors_toml")
 [[ -n $foot_osc ]] || exit 0
 
-for foot_pid in $(pgrep -x foot); do
-  for child_pid in $(pgrep -P "$foot_pid"); do
-    tty=$(readlink "/proc/$child_pid/fd/1" 2>/dev/null)
+# The server (`foot`) owns no tty; each `footclient` owns its own. Include the
+# client itself, and any children a server was started with.
+for foot_pid in $(pgrep -x 'foot|footclient'); do
+  for client_pid in "$foot_pid" $(pgrep -P "$foot_pid"); do
+    tty=$(readlink "/proc/$client_pid/fd/1" 2>/dev/null)
     [[ $tty == /dev/pts/* ]] && printf '%b' "$foot_osc" >"$tty"
   done
 done

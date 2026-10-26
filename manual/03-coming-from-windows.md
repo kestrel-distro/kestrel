@@ -41,7 +41,7 @@ Your Win + V clipboard history lives on `Super + Ctrl + V`, and it holds images 
 
 A lot of settings live in text files you edit, not panels you click through. That sounds primitive until you realize it means every tweak can be seen, copied to your next machine, and put in version control. The _Setup_ menu drops you straight into the right file and restarts whatever needs restarting when you're done.
 
-Updates come through one command, _Update > Kestrel_, that updates Kestrel itself and every package on the system, taking a snapshot first. No per-app updaters nagging you at random. See [updates](30-updates.md).
+Updates come through one command, `sudo pacman -Syu`, that updates every package on the system, taking a snapshot first. No per-app updaters nagging you at random. See [updates](30-updates.md).
 
 Software comes from a package manager, not from downloaded installers.
 

@@ -2,8 +2,8 @@
 #
 # Toggling sudoless Docker changes the docker group, which only takes effect on a
 # reboot. The setup/remove commands must flag the reboot and offer to do it now
-# (gum confirm), but defer it when KESTREL_DEFER_REBOOT is set (the migration
-# reuses them inside `kestrel update`, where kestrel-update-restart handles it).
+# (gum confirm), but defer it when KESTREL_DEFER_REBOOT is set (`kestrel update`
+# reuses them, where kestrel-update-restart handles it).
 
 set -euo pipefail
 
@@ -72,7 +72,7 @@ run kestrel-remove-security-sudoless-docker "wheel input docker" 1 0
 [[ ! -f $reboot_called ]] || fail "remove does not reboot when the prompt is declined"
 pass "remove leaves the reboot to the user when declined"
 
-# Remove, deferred (migration/update) -> flag set, prompt never shown.
+# Remove, deferred (update) -> flag set, prompt never shown.
 run kestrel-remove-security-sudoless-docker "wheel input docker" 0 1
 [[ -f $reboot_flag ]] || fail "deferred remove still flags a reboot"
 [[ ! -f $gum_called ]] || fail "deferred remove must not prompt to reboot"

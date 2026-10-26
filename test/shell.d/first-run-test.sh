@@ -25,11 +25,4 @@ HOME="$test_tmp/home" PATH="$mock_bin:$PATH" KESTREL_TEST_FINALIZE_CALLED="$fina
 [[ ! -e $finalize_called ]] || fail "completed first-run exits before any setup step"
 grep -F 'First-run already complete' "$test_tmp/output" >/dev/null || fail "completed first-run reports its lifecycle gate"
 
-if grep -F 'user-migration-notify-watch-enabled' "$ROOT/bin/kestrel-provision-first-run" >/dev/null; then
-  fail "first-run does not track the migration watcher separately"
-fi
-if grep -F 'skip-first-run-update-notification' "$ROOT/install/user/first-run/wifi.sh" >/dev/null; then
-  fail "first-run does not track update notifications separately"
-fi
-
 pass "first-run uses one lifecycle completion marker"

@@ -72,7 +72,7 @@ writer = re.compile(r"\b(tee|cp|install|ln)\b|>\s*/usr/")
 target = re.compile(r"/usr/[A-Za-z0-9._@/+-]+")
 
 problems = []
-for base in ("bin", "install", "migrations"):
+for base in ("bin", "install"):
   for path in sorted((root / base).rglob("*")):
     if not path.is_file():
       continue

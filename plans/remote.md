@@ -18,7 +18,7 @@ Kestrel already leans Sunshine/Moonlight: `moonlight-qt` ships preinstalled (`bi
 
 One blessed path, Sunshine hosting, Moonlight connecting, finished end to end. "End to end" means: pick Sunshine from the menu, pair from a terminal with a PIN, connect from any Moonlight client on the LAN or tailnet, land on a dedicated remote workspace sized to your client (or deliberately mirror the physical screen), hear the session's audio without broadcasting it at the desk, disconnect without orphaning a single window, and uninstall without leaving a trace. All of it inside the posture the installer already got right: ports open to private networks and the tailnet only, never the internet.
 
-The work is a rework of the two existing scripts plus a small new `sunshine` command group (precedent: the `tailscale` group), a managed slice of Sunshine's configuration, menu entries, a migration for existing installs, tests, and a manual section. No new daemons, no new packages beyond what's already in the kestrel repo.
+The work is a rework of the two existing scripts plus a small new `sunshine` command group (precedent: the `tailscale` group), a managed slice of Sunshine's configuration, menu entries, tests, and a manual section. No new daemons, no new packages beyond what's already in the kestrel repo.
 
 ## Rejected approaches
 
@@ -33,7 +33,7 @@ The work is a rework of the two existing scripts plus a small new `sunshine` com
 
 ### One daemon, one start path
 
-The systemd user unit wins. It has restart-on-failure, journal logging, a clean `is-active` answer for guards and status, and, because uwsm imports `WAYLAND_DISPLAY` and friends into the user manager, a complete graphical environment by the time `graphical-session.target` pulls it in. The installer keeps `systemctl --user enable --now sunshine` and stops touching `autostart.lua`; a migration (epoch-named under `migrations/`) deletes the `o.launch_on_start("sunshine")` line from existing users' `~/.config/hypr/autostart.lua` so the double start dies everywhere, not just on fresh installs. The remove script keeps its `sed` cleanup for one release as belt-and-braces, then that too can go.
+The systemd user unit wins. It has restart-on-failure, journal logging, a clean `is-active` answer for guards and status, and, because uwsm imports `WAYLAND_DISPLAY` and friends into the user manager, a complete graphical environment by the time `graphical-session.target` pulls it in. The installer keeps `systemctl --user enable --now sunshine` and stops touching `autostart.lua`. The remove script keeps its `sed` cleanup for one release as belt-and-braces, then that too can go.
 
 ### Capture backend: wlr-screencopy, declared explicitly
 
@@ -123,11 +123,11 @@ Reaching a **Windows** box *from* Kestrel is a real adjacent gap and explicitly 
 
 ## Rollout
 
-- **Phase 1, make what exists correct**: single start path + migration removing the autostart line; credentials at install; `origin_web_ui_allowed`/`upnp`/`capture` in the managed config; terminal pairing (`kestrel-sunshine-pair`, `kestrel-sunshine-clients`); the missing Install/Remove menu rows; ufw helper extraction and the Tailscale cross-call. Shippable alone and already a better product.
+- **Phase 1, make what exists correct**: single start path + removal of the legacy autostart line; credentials at install; `origin_web_ui_allowed`/`upnp`/`capture` in the managed config; terminal pairing (`kestrel-sunshine-pair`, `kestrel-sunshine-clients`); the missing Install/Remove menu rows; ufw helper extraction and the Tailscale cross-call. Shippable alone and already a better product.
 - **Phase 2, the remote desktop**: `kestrel-sunshine-display` do/undo, managed `apps.json`, `kestrel-sunshine-mode`, the audio sink, the `setup.sunshine` menu. Gated on the two verification checkpoints from the design: `output_name` semantics against the shipped build, and disconnect/reconnect behavior under monitor add/remove churn on real hardware.
 - **Phase 3, polish**: `kestrel-sunshine-clients` unpair flows, docs, acceptance coverage.
 - **Tests**: shell tests in `test/shell.d/sunshine-test.sh` for the pure logic, managed-config block idempotency, apps.json generation preserving user entries, ufw argument construction, state-file round-trips for `display up`/`down`, mode `--status` output; CLI metadata via `kestrel commands --check`; menu guard wiring via the existing `menu-test.sh`/`menu-guards-test.sh` conventions. Graphical acceptance per `agents/skills/acceptance-tests.md` in the ISO VM: install from the menu, unit active, ports open, `display up` creates and sizes the output and `down` leaves no orphaned windows (screenshot each state), remove leaves no unit/rules/state behind. Actual stream negotiation needs a Moonlight client and stays a manual checklist item in the PR, honestly labeled.
-- **Docs**: a new `manual/52-remote-desktop.md`, hosting setup, pairing, the two modes, Tailscale-for-roaming, the FDE/headless caveat, and the Remmina pointer for the Windows-target gap; `manual/26-gaming.md` trims to game streaming and links over; `docs/` gets a short reference on the managed-config block and state files so future migrations know what Kestrel owns.
+- **Docs**: a new `manual/52-remote-desktop.md`, hosting setup, pairing, the two modes, Tailscale-for-roaming, the FDE/headless caveat, and the Remmina pointer for the Windows-target gap; `manual/26-gaming.md` trims to game streaming and links over; `docs/` gets a short reference on the managed-config block and state files so future changes know what Kestrel owns.
 
 ## Open questions
 

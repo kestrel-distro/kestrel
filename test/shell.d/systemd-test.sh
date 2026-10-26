@@ -31,25 +31,6 @@ grep -Fx 'systemctl --user daemon-reload' "$first_run_units" >/dev/null
 grep -F 'kestrel-sleep-lock.service' "$first_run_units" >/dev/null
 pass "first-run reloads and enables the sleep lock service"
 
-[[ -e $ROOT/default/systemd/user/kestrel-update-user-notify.path ]] &&
-  fail "the retired migration watcher is back; pacman writing the migration directory during kestrel update would notify about migrations that update is already applying"
-grep -rlE '^(Path[A-Za-z]+|DirectoryNotEmpty)=.*/usr/share/kestrel/migrations' "$ROOT/default/systemd/user" >/dev/null 2>&1 &&
-  fail "a user unit watches the migration directory again; the notifier must stay login-only"
-pass "no unit watches the migration directory, so package updates cannot trigger the notifier"
-
-notify_service="$ROOT/default/systemd/user/kestrel-migrate-notify.service"
-grep -Fx 'ExecStart=/usr/bin/kestrel-migrate-notify' "$notify_service" >/dev/null
-grep -Fx 'WantedBy=graphical-session.target' "$notify_service" >/dev/null
-grep -Fx 'After=graphical-session.target' "$notify_service" >/dev/null ||
-  fail "migration notifier can deadlock UWSM by blocking graphical-session.target"
-pass "migration notifier checks once per login after the graphical session is ready"
-
-grep -F 'kestrel-migrate-notify.service' "$first_run_units" >/dev/null ||
-  fail "first-run does not enable the login migration notifier"
-grep -F 'kestrel-update-user-notify' "$first_run_units" >/dev/null &&
-  fail "first-run still enables the retired notifier units"
-pass "first-run enables the login-only migration notifier"
-
 fcitx_service="$ROOT/default/systemd/user/kestrel-fcitx5.service"
 grep -Fx 'ExecStart=/usr/bin/fcitx5 --disable notificationitem' "$fcitx_service" >/dev/null
 grep -Fx 'Restart=always' "$fcitx_service" >/dev/null ||

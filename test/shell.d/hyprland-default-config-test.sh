@@ -214,30 +214,4 @@ number_claims=$(cut -f1 <<<"$panels_output" | grep -cE '^SUPER \+ CTRL \+ code:1
   fail "only the bar panel hotkeys bind SUPER + CTRL + a number" "$number_claims"
 pass "bar panel hotkeys bind SUPER + CTRL + a number without a collision"
 
-migration=$(grep -rl 'Move stock Hyprland user overrides into package defaults' "$ROOT/migrations" | head -n 1 || true)
-[[ -n $migration ]] || fail "Hyprland default config migration exists"
-
-migration_home="$tmpdir/migration-home"
-mkdir -p "$migration_home/.config/hypr"
-cat >"$migration_home/.config/hypr/bindings.lua" <<'LUA'
-require("default.hypr.bindings.media")
-require("default.hypr.bindings.clipboard")
-require("default.hypr.bindings.tiling")
-require("default.hypr.bindings.utilities")
-
--- Application bindings without Kestrel's preinstalled web apps, TUIs, or desktop apps.
-o.bind("SUPER + RETURN", "Terminal", { kestrel = "terminal" })
-o.bind("SUPER + SHIFT + RETURN", "Browser", { kestrel = "browser" })
-o.bind("SUPER + SHIFT + F", "File manager", { kestrel = "nautilus" })
-o.bind("SUPER + ALT + SHIFT + F", "File manager (cwd)", { kestrel = "nautilus-cwd" })
-o.bind("SUPER + SHIFT + B", "Browser", { kestrel = "browser" })
-o.bind("SUPER + SHIFT + ALT + B", "Browser (private)", { kestrel = "browser --private" })
-o.bind("SUPER + SHIFT + N", "Editor", { kestrel = "editor" })
-LUA
-HOME="$migration_home" KESTREL_PATH="$ROOT" bash -euo pipefail "$migration" >/dev/null
-cmp -s "$ROOT/config/hypr/bindings.lua" "$migration_home/.config/hypr/bindings.lua" ||
-  fail "plain legacy bindings migrate to the user override stub"
-[[ -f $migration_home/.local/state/kestrel/preinstalls-removed ]] ||
-  fail "plain legacy bindings preserve preinstall removal state"
-pass "migration converts plain legacy bindings to package-owned defaults"
 

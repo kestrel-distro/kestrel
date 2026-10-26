@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "eclipse.mpris",
+  "name": "MPRIS",
+  "version": "1.0.0",
+  "author": "eclipse",
+  "description": "Now playing; click play/pause",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Mpris.qml"
+  },
+  "barWidget": {
+    "displayName": "MPRIS",
+    "description": "Media player now-playing readout",
+    "category": "Media",
+    "allowMultiple": false
+  }
+}

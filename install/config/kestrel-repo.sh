@@ -2,7 +2,7 @@
 
 # Register the Kestrel package repository and trust its signing key.
 #
-# Used by the installer (fresh installs) and by a migration (existing installs).
+# Used by the installer.
 # Idempotent: safe to run repeatedly.
 
 set -euo pipefail

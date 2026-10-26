@@ -33,8 +33,8 @@ mkdir -p "$HOME/.local/bin"
 printf -v package_arg '%q' "$package"
 printf -v bin_arg '%q' "$bin"
 
-# Keep values that are inert inside double quotes in the form existing migrations
-# recognize, including mise backend options that %q would unnecessarily escape.
+# Keep values that are inert inside double quotes in their original form,
+# including mise backend options that %q would unnecessarily escape.
 case "$package" in
   *'$'* | *'`'* | *'"'* | *'\'* | *'!'* | *[[:cntrl:]]*) ;;
   *) package_arg="\"$package\"" ;;

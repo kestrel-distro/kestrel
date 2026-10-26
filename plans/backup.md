@@ -17,7 +17,7 @@ The ask: paste S3-compatible credentials, and Kestrel handles incremental, versi
 
 Stated up front so the feature never overpromises:
 
-- **Defends against**: disk death, machine loss/theft, accidental deletion or overwrite discovered later, a botched migration, anything where you still control your storage account and passphrase.
+- **Defends against**: disk death, machine loss/theft, accidental deletion or overwrite discovered later, a botched backup run, anything where you still control your storage account and passphrase.
 - **Does not defend against (v1)**: an attacker or malware running as your user on the live machine. The machine necessarily holds credentials that can write to, and, for retention, delete from, the repository, so ransomware with user privileges can attack the backups too. Provider-side object versioning/immutability can mitigate this but is a per-provider, tested procedure (delete markers, prune's space-reclamation assumptions), not a checkbox; the manual documents it honestly. True split-authority (backup-only key on the machine, maintenance from elsewhere) is the v2 path, sketched in open questions.
 - **App-consistency limits**: files are read live. Running databases, VM disks, and containers may snapshot in a crash-consistent state at best. The manual says so.
 - **Scope boundary**: personal files under `$HOME` for the invoking user. Not `/etc`, not `/var`, not other users, not system package state, the OS is reinstallable from the ISO, and configs are the dots plan's job.
@@ -118,7 +118,6 @@ Explicitly part of the design, and deliberately boring:
 ## Rollout
 
 - Fully opt-in: no packages installed, no units enabled, no scheduled work, no widget until _Setup > Backup_ runs (the unit files themselves ship disabled with `kestrel-settings`, like every other default unit).
-- No migration needed for existing users.
 - Docs per the documentation layout: a new `manual/49-backups.md` (user guide: setup, restore, browse, the passphrase warning and recovery card, multi-machine, the threat model in plain words, including provider lifecycle policies: cold-storage/archival tiers silently break restic and must not be enabled on the bucket), `docs/backup.md` (reference: state file schema, unit wiring, retention, lock/maintenance topology), and `manual/47-system-snapshots.md` / `24-commercial-apps-services.md` cross-links so "snapshots vs backup vs sync" is stated in one place.
 - Tests: restic's local backend covers the engine logic hermetically, CLI metadata (`kestrel commands --check` via `test/cli`), state-file transitions including stale-run reconciliation and partial results, pause expiry, exclude expansion (tilde-free, absolute), retention args, restore round-trip into staging (fixture tree → local repo → restore → diff), wizard's unattended flag path and resume-after-abort, menu acceptance. S3 specifics (endpoint styles, auth failures, prefixes) get an integration pass against MinIO in the acceptance VM. The widget and panel go through `agents/skills/visual-verification.md` in the running UI: unconfigured, first backup, running, partial, failure, stale, paused, browse-mounted, long labels, teardown.
 

@@ -16,7 +16,6 @@ systemctl --user enable --now \
   bt-agent.service \
   kestrel-recover-internal-monitor.service \
   kestrel-sleep-lock.service \
-  kestrel-migrate-notify.service \
   kestrel-fcitx5.service \
   kestrel-crash-watch.service \
   kestrel-slices.service \

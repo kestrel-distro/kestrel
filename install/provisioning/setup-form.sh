@@ -1,7 +1,7 @@
 # The setup form: every question Kestrel asks a human to describe their machine
-#, keyboard, account, hostname, timezone, plus the rules those answers are
-# checked against. Shared by the two places that ask them: the ISO
-# configurator's user step and this package's first-boot owner setup
+# — keyboard, account, hostname, timezone — plus the rules those answers are
+# checked against. Shared by the two places that ask them: the ISO configurator's
+# user step and this package's first-boot owner setup
 # (kestrel-provision-owner). Sourced by both, so the copies cannot drift the way
 # the keyboard list already did.
 #
@@ -9,13 +9,13 @@
 # same way:
 #
 #   0    field is set, move on
-#   1    Esc, unwind to the start of the form
+#   1    end of input (stdin closed), unwind to the start of the form
 #   130  Ctrl+C, a per-caller side channel (the installer arms deferred
 #        provisioning or toggles encryption; first-boot setup offers a reboot)
 #
-# gum is the reason those two are the whole vocabulary: Esc and Ctrl+C are the
-# only keys any gum widget exits on, and Ctrl+C arrives as a byte in raw mode,
-# so it never reaches the shell as SIGINT. Act on the status, never on a trap.
+# The prompts are plain bash reads. gum's text input used to panic on a
+# terminal that had not been sized yet (0x0 pty -> negative width), which
+# silently froze the installer at the first question.
 #
 # Callers supply `notice <message> <seconds>` for validation feedback, and set
 # the variables these prompts write: keyboard, keyboard_label, username,
@@ -24,11 +24,7 @@
 KESTREL_FORM_BACK=1
 KESTREL_FORM_SIGNAL=130
 
-# The English layouts lead, then everything else alphabetically. gum choose
-# paginates in --height-sized pages and jumps to the page holding --selected,
-# so an alphabetical English (US) landed deep enough to sit alone at the edge
-# of a page of layouts nobody scanning for it reads. Up here the default and
-# its variants are the first thing on screen no matter how the list grows.
+# The English layouts lead, then everything else alphabetically.
 KESTREL_KEYBOARD_LAYOUTS=$'English (US)|us
 English (UK)|uk
 English (US, Dvorak)|dvorak
@@ -83,30 +79,86 @@ KESTREL_RESERVED_USERNAMES='^(root|bin|daemon|mail|ftp|http|nobody|dbus|systemd-
 KESTREL_HOSTNAME_PATTERN='^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$'
 KESTREL_HOSTNAME_DEFAULT='kestrel'
 
+# Ctrl+C must come back as status 130 instead of killing the installer, so the
+# callers' deferred/encryption side channels keep working.
+KESTREL_FORM_INTERRUPTED=0
+trap 'KESTREL_FORM_INTERRUPTED=1' INT
+
 # Installer targets are empty, so any account is fair game; first-boot setup
 # overrides this because its machine already has users.
 kestrel_username_taken() { return 1; }
 
-# `x=$(gum ...) && status=0 || status=$?` rather than a bare assignment followed
-# by `status=$?`: one caller runs under `set -e`, where a cancelled prompt is a
-# failing assignment that would kill the script before the status is read.
+# kestrel_read_line <prompt> <variable> [silent]
+#
+# Read with a one-second timeout instead of blocking: a trapped SIGINT does not
+# make `read` return until more input arrives, so polling is what lets Ctrl+C
+# reach the caller's status-130 handling. Partial input survives a timeout.
+kestrel_read_line() {
+  local prompt=$1 __var=$2 silent=${3:-}
+  local value="" chunk status
+  KESTREL_FORM_INTERRUPTED=0
+  printf '%s' "$prompt" >&2
+  while true; do
+    if [[ -n $silent ]]; then
+      IFS= read -rs -t 1 chunk && status=0 || status=$?
+    else
+      IFS= read -r -t 1 chunk && status=0 || status=$?
+    fi
+    value+=$chunk
+    ((KESTREL_FORM_INTERRUPTED)) && { printf '\n' >&2; return "$KESTREL_FORM_SIGNAL"; }
+    ((status == 0)) && break
+    ((status > 128)) || { printf '\n' >&2; return "$status"; }
+  done
+  [[ -n $silent ]] && printf '\n' >&2
+  printf -v "$__var" '%s' "$value"
+}
+
+# kestrel_choose <header> <item>... -> prints the chosen item on stdout.
+kestrel_choose() {
+  local header=$1 choice i
+  shift
+  local -a items=("$@")
+  (( ${#items[@]} )) || return 1
+  printf '%s\n' "$header" >&2
+  for i in "${!items[@]}"; do
+    printf '%2d) %s\n' "$((i + 1))" "${items[i]}" >&2
+  done
+  while true; do
+    kestrel_read_line "> " choice || return $?
+    if [[ $choice =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#items[@]})); then
+      printf '%s\n' "${items[choice - 1]}"
+      return 0
+    fi
+    printf 'Pick a number from the list.\n' >&2
+  done
+}
 
 kestrel_prompt_keyboard() {
-  local choice status
-  choice=$(printf '%s\n' "$KESTREL_KEYBOARD_LAYOUTS" | cut -d'|' -f1 |
-    gum choose --height 10 --selected "Spanish" --header "Select keyboard layout") && status=0 || status=$?
-  ((status == 0)) || return $status
+  local label code choice status
+  local -a labels=() codes=()
+  while IFS='|' read -r label code; do
+    labels+=("$label")
+    codes+=("$code")
+  done <<<"$KESTREL_KEYBOARD_LAYOUTS"
 
-  keyboard_label="$choice"
-  keyboard=$(printf '%s\n' "$KESTREL_KEYBOARD_LAYOUTS" | awk -F'|' -v c="$choice" '$1==c{print $2; exit}')
+  choice=$(kestrel_choose "Select keyboard layout:" "${labels[@]}") && status=0 || status=$?
+  ((status == 0)) || return "$status"
+
+  keyboard_label=$choice
+  local i
+  for i in "${!labels[@]}"; do
+    if [[ ${labels[i]} == "$choice" ]]; then
+      keyboard=${codes[i]}
+      break
+    fi
+  done
+  return 0
 }
 
 kestrel_prompt_username() {
   local status
   while true; do
-    username=$(gum input --width 80 --placeholder "Alphanumeric without spaces (like dhh)" --prompt.foreground="#845DF9" --prompt "Username> ") && status=0 || status=$?
-    ((status == 0)) || return $status
-
+    kestrel_read_line "Username (alphanumeric, no spaces): " username || return $?
     if [[ "$username" =~ $KESTREL_USERNAME_PATTERN ]]; then
       if [[ "$username" =~ $KESTREL_RESERVED_USERNAMES ]]; then
         notice "Username is reserved for system" 1
@@ -122,12 +174,9 @@ kestrel_prompt_username() {
 }
 
 kestrel_prompt_password() {
-  local status
   while true; do
-    password=$(gum input --width 80 --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#845DF9" --password --prompt "Password> ") && status=0 || status=$?
-    ((status == 0)) || return $status
-    password_confirmation=$(gum input --width 80 --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") && status=0 || status=$?
-    ((status == 0)) || return $status
+    kestrel_read_line "Password (user + root, and disk encryption when enabled): " password silent || return $?
+    kestrel_read_line "Confirm password: " password_confirmation silent || return $?
 
     if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
       return 0
@@ -139,22 +188,15 @@ kestrel_prompt_password() {
   done
 }
 
-# Both fields are skippable with Return, so an empty value is a real answer and
-# only Esc/Ctrl+C end the prompt early.
+# Both fields are skippable with Return, so an empty value is a real answer.
 kestrel_prompt_identity() {
-  local status
-  full_name=$(gum input --width 80 --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Full name> ") && status=0 || status=$?
-  ((status == 0)) || return $status
-  email_address=$(gum input --width 80 --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ") && status=0 || status=$?
-  return $status
+  kestrel_read_line "Full name (git; return to skip): " full_name || return $?
+  kestrel_read_line "Email address (git; return to skip): " email_address || return $?
 }
 
 kestrel_prompt_hostname() {
-  local status
   while true; do
-    hostname=$(gum input --width 80 --placeholder "Letters, digits, and dashes (or return for 'kestrel')" --prompt.foreground="#845DF9" --prompt "Hostname> ") && status=0 || status=$?
-    ((status == 0)) || return $status
-
+    kestrel_read_line "Hostname (letters, digits, dashes; return for 'kestrel'): " hostname || return $?
     if [[ -z $hostname ]]; then
       hostname="$KESTREL_HOSTNAME_DEFAULT"
       return 0
@@ -167,17 +209,25 @@ kestrel_prompt_hostname() {
 }
 
 # A fresh machine often hasn't joined a network yet, so the geo guess fails
-# often; guard it or a `set -e` caller dies before the filter fallback.
+# often; guard it or a `set -e` caller dies before the fallback.
 kestrel_prompt_timezone() {
-  local guess status
+  local guess input
   guess=$(tzupdate -p 2>/dev/null) || guess=""
 
-  if [[ -n $guess ]]; then
-    timezone=$(timedatectl list-timezones | gum choose --height 10 --selected "$guess" --header "Timezone") && status=0 || status=$?
-  else
-    timezone=$(timedatectl list-timezones | gum filter --height 10 --header "Timezone") && status=0 || status=$?
-  fi
-  ((status == 0)) || return $status
+  while true; do
+    kestrel_read_line "Timezone [${guess:-UTC}]: " input || return $?
+    [[ -n $input ]] || input=${guess:-UTC}
+    if timedatectl list-timezones | grep -Fxq "$input"; then
+      timezone=$input
+      return 0
+    fi
+    notice "Unknown timezone: $input" 1
+  done
+}
 
-  [[ -n $timezone ]] || timezone="UTC"
+# kestrel_confirm <prompt> -> 0 for yes (Return defaults to yes), 130 on Ctrl+C.
+kestrel_confirm() {
+  local reply
+  kestrel_read_line "$1 [Y/n]: " reply || return $?
+  [[ -z $reply || $reply =~ ^[Yy] ]]
 }

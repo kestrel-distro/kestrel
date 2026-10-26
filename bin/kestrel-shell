@@ -41,8 +41,8 @@ fi
 [[ -f $KESTREL_PATH/shell/shell.qml ]] || fail "kestrel-shell config not found: $KESTREL_PATH/shell/shell.qml"
 
 # qs matches instances by display, and a caller from outside the session (an
-# ssh or TTY kestrel-restart-shell, and the migrations it runs for) has none,
-# so recover it from the compositor socket.
+# ssh or TTY kestrel-restart-shell) has none, so recover it from the
+# compositor socket.
 if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
   socket=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}"/wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -n1)
   [[ -n $socket ]] && export WAYLAND_DISPLAY=${socket##*/}

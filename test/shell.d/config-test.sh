@@ -144,7 +144,6 @@ package_defaults = [
   ("default/systemd/user/bt-agent.service", "/usr/lib/systemd/user/bt-agent.service", "systemd/user/bt-agent.service"),
   ("default/systemd/user/kestrel-sleep-lock.service", "/usr/lib/systemd/user/kestrel-sleep-lock.service", "systemd/user/kestrel-sleep-lock.service"),
   ("default/systemd/user/kestrel-recover-internal-monitor.service", "/usr/lib/systemd/user/kestrel-recover-internal-monitor.service", "systemd/user/kestrel-recover-internal-monitor.service"),
-  ("default/systemd/user/kestrel-migrate-notify.service", "/usr/lib/systemd/user/kestrel-migrate-notify.service", "systemd/user/kestrel-migrate-notify.service"),
   ("default/systemd/user/kestrel-tailscale-receive.service", "/usr/lib/systemd/user/kestrel-tailscale-receive.service", "systemd/user/kestrel-tailscale-receive.service"),
   ("default/systemd/user/kestrel-fcitx5.service", "/usr/lib/systemd/user/kestrel-fcitx5.service", "systemd/user/kestrel-fcitx5.service"),
   ("default/systemd/user/kestrel-crash-watch.service", "/usr/lib/systemd/user/kestrel-crash-watch.service", "systemd/user/kestrel-crash-watch.service"),
@@ -161,16 +160,6 @@ for source, destination, legacy in package_defaults:
     errors.append(f"legacy path still in config/: {legacy}")
   if destination and (source not in pkgbuild or destination not in pkgbuild):
     errors.append(f"PKGBUILD does not explicitly install {source} -> {destination}")
-
-# Existing users have an absolute wants symlink to the old unit path, and the
-# migration that repoints it only runs for users who run an update, the
-# opposite of who the notifier is for. Dropping this alias strands them.
-notify_alias = 'ln -sfn kestrel-migrate-notify.service "$pkgdir/usr/lib/systemd/user/kestrel-update-user-notify.service"'
-if notify_alias not in pkgbuild:
-  errors.append(
-    "PKGBUILD does not ship the kestrel-update-user-notify.service compatibility "
-    "alias, so users who have not run migration 1785095882 lose the login notifier"
-  )
 
 alpm_hooks = [
   "95-kestrel-snapshot.hook",

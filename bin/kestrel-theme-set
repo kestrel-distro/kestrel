@@ -465,7 +465,6 @@ fi
 flock -u 9
 
 post_theme_commands=(
-  kestrel-restart-terminal
   kestrel-restart-btop
   kestrel-restart-opencode
   kestrel-restart-helix

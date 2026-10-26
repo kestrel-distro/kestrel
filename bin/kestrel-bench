@@ -12,10 +12,109 @@ else
 fi
 mkdir -p "$out"
 log="$out/kestrel-bench.log"
-exec > >(tee -a "$log") 2>&1
+# Append straight to the log. A tee behind a process substitution dies with
+# the terminal it was launched from, and taking the whole run with it leaves a
+# log that stops mid-benchmark with no error.
+exec >>"$log" 2>&1
+echo "kestrel-bench: logging to $log" >/dev/tty 2>/dev/null || true
+if [[ ${KESTREL_BENCH_TRACE:-0} == 1 ]]; then
+  PS4='+ '
+  set -x
+fi
 
-say() { printf '\n== %s ==\n' "$*"; }
-as_root() { if ((EUID == 0)); then "$@"; else sudo "$@"; fi; }
+say() {
+  printf '\n== %s ==\n' "$*"
+  printf '== %s ==\n' "$*" >/dev/tty 2>/dev/null || true
+}
+as_root() { if ((EUID == 0)); then "$@"; else sudo -n "$@" </dev/null; fi; }
+
+# Never leave the live session on the experimental scheduler: a bench that dies
+# mid-run would otherwise hand a Kestrel-scheduled system to the installer.
+trap 'mem_peak_stop >/dev/null 2>&1 || true; as_root scxctl restore >/dev/null 2>&1 || true' EXIT
+
+# --- memory ----------------------------------------------------------------
+# Peak PSS for the apps Kestrel ships, so their footprint can be tuned from a
+# bench run instead of ad-hoc ps calls.
+mem_apps=(Hyprland quickshell foot footclient kestrel-broker kestrel-shell
+          Xwayland uwsm hypridle xdg-desktop-por zen chromium nautilus)
+
+proc_pss() {
+  awk '/^Pss:/{s+=$2} END{print s+0}' "/proc/$1/smaps_rollup" 2>/dev/null || echo 0
+}
+proc_rss() {
+  awk '/^VmRSS:/{print $2}' "/proc/$1/status" 2>/dev/null || echo 0
+}
+
+mem_snapshot() {
+  local label=$1
+  {
+    echo "== memory: $label ($(date -Is)) =="
+    free -m 2>/dev/null || true
+    local cg="/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/kestrel.slice/memory.current"
+    [[ -r $cg ]] && echo "kestrel.slice memory.current: $(<"$cg") bytes"
+    printf '%-18s %6s %10s %10s\n' process procs pss_kb rss_kb
+    local name pid pss rss n
+    for name in "${mem_apps[@]}"; do
+      pss=0; rss=0; n=0
+      for pid in $(pgrep -x "$name" 2>/dev/null || true); do
+        pss=$((pss + $(proc_pss "$pid")))
+        rss=$((rss + $(proc_rss "$pid")))
+        n=$((n + 1))
+      done
+      if (( n > 0 )); then
+        printf '%-18s %6d %10d %10d\n' "$name" "$n" "$pss" "$rss"
+      fi
+    done
+    echo '--- top 20 by PSS (kB) ---'
+    local d comm
+    for d in /proc/[0-9]*; do
+      [[ -r $d/smaps_rollup ]] || continue
+      comm=$(cat "$d/comm" 2>/dev/null || true)
+      [[ -n $comm ]] || continue
+      pss=$(proc_pss "${d##*/}")
+      if (( pss > 0 )); then
+        printf '%8s %s\n' "$pss" "$comm"
+      fi
+    done | sort -rn | head -20
+    echo
+  } | tee -a "$out/memory.txt"
+}
+
+mem_peak_start() {
+  : >"$out/memory-peak.raw"
+  : >"$out/.mem-sampling"
+  (
+    while [[ -e $out/.mem-sampling ]]; do
+      for name in "${mem_apps[@]}"; do
+        for pid in $(pgrep -x "$name" 2>/dev/null || true); do
+          [[ -r /proc/$pid/smaps_rollup ]] || continue
+          pss=$(awk '/^Pss:/{s+=$2} END{print s+0}' "/proc/$pid/smaps_rollup" 2>/dev/null || echo 0)
+          printf '%s\t%s\n' "$name" "$pss"
+        done
+      done
+      sleep 5
+    done
+  ) >>"$out/memory-peak.raw" &
+  echo "$!" >"$out/.mem-sampler.pid"
+}
+
+mem_peak_stop() {
+  [[ -e $out/.mem-sampling ]] || return 0
+  rm -f "$out/.mem-sampling"
+  if [[ -f $out/.mem-sampler.pid ]]; then
+    local sid
+    sid=$(<"$out/.mem-sampler.pid")
+    kill "$sid" 2>/dev/null || true
+    wait "$sid" 2>/dev/null || true
+  fi
+  {
+    echo "== peak PSS during workload (kB, 5s samples) =="
+    awk -F'\t' '{ if ($2+0 > m[$1]) m[$1]=$2+0 } END { for (c in m) printf "%9d\t%s\n", m[c], c }' \
+      "$out/memory-peak.raw" 2>/dev/null | sort -rn | head -40
+    echo
+  } | tee -a "$out/memory.txt"
+  rm -f "$out/memory-peak.raw" "$out/.mem-sampler.pid"
+}
 
 say "identity"
 uname -r
@@ -45,6 +144,7 @@ kestrel-hint set "$$" 3 || true
 kestrel-hint get "$$" || true
 as_root scxctl switch --sched scx_kestrel || true
 cat /sys/kernel/sched_ext/root/ops 2>/dev/null || true
+journalctl -b -u scx_loader --no-pager -n 40 2>/dev/null || true
 
 say "bridge"
 systemctl --user status kestrel-slices.service kestrel-broker.service --no-pager || true
@@ -55,39 +155,50 @@ pgrep -x Hyprland >/dev/null && kestrel-hint get "$(pgrep -x Hyprland)" || true
 
 say "app hints"
 for name in Hyprland quickshell foot zen; do
-  pid=$(pgrep -x "$name" 2>/dev/null | head -1)
+  # pipefail: pgrep exits 1 for a name that is not running (e.g. zen), which
+  # would otherwise fail the assignment and take the whole bench with it.
+  pid=$(pgrep -x "$name" 2>/dev/null | head -1) || true
   [[ -n $pid ]] || continue
   printf '%-12s pid=%s hint=%s\n' "$name" "$pid" "$(kestrel-hint get "$pid" 2>/dev/null || echo '?')"
 done
-if pid=$(pgrep -x foot 2>/dev/null | head -1); then
-  ps -T -p "$pid" -o spid=,comm= 2>/dev/null | while read -r tid comm; do
-    [[ $comm == foot ]] && printf 'foot thread %s hint=%s\n' "$tid" "$(kestrel-hint get "$tid" 2>/dev/null || echo '?')"
-  done
-fi
 
-say "tests"
-/usr/share/kestrel/test/vm cli shell acceptance || echo "test/vm failed (see above)"
+say "memory"
+mem_snapshot idle
+mem_peak_start
+
+# The in-guest suites own the session (they launch compositors and rewrite
+# /etc), so they can take the VM down mid-bench. Opt in; never on by default.
+if [[ ${KESTREL_BENCH_TESTS:-0} == 1 ]]; then
+  say "tests"
+  timeout 600 /usr/share/kestrel/test/vm cli shell acceptance || echo "test/vm failed (see above)"
+fi
 
 say "bench"
 bench="/usr/share/kestrel-bench/bench"
+[[ -x $bench/scx ]] || bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
 if [[ ! -x $bench/scx ]]; then
+  mkdir -p "$HOME/.cache/kestrel/bench-src"
+  echo "bench: fetching the harness (no $bench/scx)"
+  git clone --depth 1 https://github.com/kestrel-distro/kernel \
+    "$HOME/.cache/kestrel/bench-src/kernel" || true
   bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
-  if [[ ! -x $bench/scx ]]; then
-    mkdir -p "$HOME/.cache/kestrel/bench-src"
-    git clone --depth 1 https://github.com/kestrel-distro/kernel "$HOME/.cache/kestrel/bench-src/kernel"
-    bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
-  fi
 fi
-cp -a "$bench" "$out/bench-harness"
-cd "$out/bench-harness"
-for run in 1 2 3; do
-  KESTREL_SCX_AB="scx_bpfland: scx_kestrel:" \
-  KESTREL_BENCH_MODE=session \
-  KESTREL_BENCH_SESSION_SECONDS=30 \
-  KESTREL_SCX_SETTLE=10 \
-  ./scx "run$run" || echo "bench run$run failed"
-done
-ls -1 results | tail -20 || true
+
+if [[ -x $bench/scx ]]; then
+  cp -a "$bench" "$out/bench-harness"
+  cd "$out/bench-harness"
+  for run in 1 2 3; do
+    say "bench run$run: bpfland -> kestrel"
+    KESTREL_SCX_AB="scx_bpfland: scx_kestrel:" \
+    KESTREL_BENCH_MODE=session \
+    KESTREL_BENCH_SESSION_SECONDS=30 \
+    KESTREL_SCX_SETTLE=10 \
+    ./scx "run$run" || echo "bench run$run failed"
+  done
+  ls -1 results | tail -20 || true
+else
+  echo "bench: skipped, harness unavailable (offline?)"
+fi
 
 say "foot workers"
 if [[ -x ./foot-workers ]]; then
@@ -95,6 +206,9 @@ if [[ -x ./foot-workers ]]; then
 else
   echo "foot-workers harness not present"
 fi
+
+mem_snapshot after-workload
+mem_peak_stop
 
 say "done"
 echo "results: $out"

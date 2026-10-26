@@ -12,5 +12,11 @@ if [[ ! -s $HOME/.local/state/kestrel/current/theme.name ]]; then
 fi
 kestrel-theme-set-pi --activate
 
+# fastfetch has no reload: point it at the generated palette so a config left
+# behind by an older image cannot shadow the active theme.
+mkdir -p "$HOME/.config/fastfetch"
+ln -snf "$HOME/.local/state/kestrel/current/theme/fastfetch.jsonc" \
+  "$HOME/.config/fastfetch/config.jsonc"
+
 mkdir -p ~/.config/btop/themes
 ln -snf "$HOME/.local/state/kestrel/current/theme/btop.theme" ~/.config/btop/themes/current.theme

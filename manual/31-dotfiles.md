@@ -37,7 +37,7 @@ Kestrel fires hooks at a handful of moments, and you can hang your own scripts o
 | Event | When it runs |
 | ----- | ------------ |
 | `post-boot` | Right after the desktop has started |
-| `post-update` | Near the end of `kestrel update`, after packages, migrations, and service restarts, before mise tools are updated |
+| `post-update` | Near the end of `kestrel update`, after packages and service restarts, before mise tools are updated |
 | `pre-refresh-pacman` | After `kestrel refresh pacman` re-syncs the package config, before it updates packages; a channel switch runs it during that same refresh step |
 | `theme-set` | After a theme change (theme name in `$1`) |
 | `font-set` | After a font change (font name in `$1`) |
@@ -74,8 +74,8 @@ o.rebind("SUPER + SHIFT + O", "Joplin", "joplin-desktop")
 
 `o.rebind` removes the existing binding before adding its replacement. It takes the same arguments as `o.bind`, including launch helpers and binding options. Use `o.bind` to add a binding, or `hl.unbind` to remove one without replacing it.
 
-If you insist on hacking on the internal Kestrel files, switch to the dev channel via _Update > Channel > Dev_. That links Kestrel to a git checkout of the source code in `~/kestrel`, which you're free to change to your heart's content. Ain't nobody here to tell you what to do!
+If you insist on hacking on the internal Kestrel files, link Kestrel to a local git checkout with `kestrel dev link ~/kestrel`. That points Kestrel at the source code in `~/kestrel`, which you're free to change to your heart's content. Ain't nobody here to tell you what to do! Undo it with `kestrel dev unlink`.
 
 ### Resetting any changes
 
-If you end up making a mess of the configurations, you can always revert them to the defaults via _Update > Config_ in the Kestrel menu. Or by running `kestrel reinstall configs` to reset everything.
+If you end up making a mess of a configuration file, you can always revert it to the shipped default with `kestrel-refresh-config <path>` (your version is backed up first). For example, `kestrel-refresh-config hypr/looknfeel.lua` restores the Hyprland look and feel.

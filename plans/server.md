@@ -13,14 +13,14 @@ And every server distro greets you the same dreary way: `Last login: ...` and a 
 A second edition built from this same repo, not a fork, not a mode toggle:
 
 - No Hyprland, no Quickshell, no GUI packages. Boots to a getty on the console; SSH is the primary access and is on from first boot (key-only).
-- A curated server package set: the existing CLI (`kestrel ...`), the TUI toolbox (btop, lazygit, lazydocker, lazyjournal), Docker + compose, ufw, snapper snapshots, the same update/migration pipeline. The backup plan (`plans/backup.md`) applies minus the shell panel; the dots plan (`plans/dots.md`) gets its best use case, syncing your configs between desktop and server.
+- A curated server package set: the existing CLI (`kestrel ...`), the TUI toolbox (btop, lazygit, lazydocker, lazyjournal), Docker + compose, ufw, snapper snapshots, the same update pipeline. The backup plan (`plans/backup.md`) applies minus the shell panel; the dots plan (`plans/dots.md`) gets its best use case, syncing your configs between desktop and server.
 - The BBS layer: a themed pre-login `/etc/issue`, a login splash, and a home menu (`kestrel-server-menu`) that works like a BBS door system, pick an entry, the tool takes the full screen, quitting it drops you back at the menu. `[Q]` is always a real shell.
 
 ## Rejected approaches
 
 - **A fork repo**: permanent drift; every bin/ fix would need double maintenance. The dots plan's reasoning against wrapping third-party tools applies to wrapping ourselves.
 - **A web admin panel** (Cockpit and friends): a second attack surface listening on a port, a second UI toolkit to theme, and not Kestrel's soul. The terminal is the product; SSH is the transport we already secured.
-- **"Server mode" toggle on an installed desktop**: uninstalling a GUI stack in place is a migration minefield in both directions. Edition is chosen at install time; changing your mind is a reinstall (dots + backup make that cheap).
+- **"Server mode" toggle on an installed desktop**: uninstalling a GUI stack in place is a rework minefield in both directions. Edition is chosen at install time; changing your mind is a reinstall (dots + backup make that cheap).
 - **A compiled TUI framework** (bubbletea, ratatui) for the menu: a new toolchain for v1's needs. The repo's idiom is bash + gum, which is already themeable and already everywhere; revisit only if the menu outgrows it.
 - **archinstall server profile**: Kestrel has its own installer and offline mirror; the edition is a package-set and provisioning variant of that pipeline, not a different installer.
 
@@ -44,9 +44,9 @@ A door in action, `[U]` runs the standard `kestrel-update` pipeline, snapshot fi
 
 ### Edition mechanics
 
-- The installer writes the edition (e.g. `/etc/kestrel-edition`), read by a new `kestrel-edition` helper with quiet predicates in the `hw-` tradition (`kestrel-edition-server`, exit-code interface) so scripts and migrations can gate.
+- The installer writes the edition (e.g. `/etc/kestrel-edition`), read by a new `kestrel-edition` helper with quiet predicates in the `hw-` tradition (`kestrel-edition-server`, exit-code interface) so scripts can gate.
 - `install/kestrel-server.packages` is a hand-curated subset of `kestrel-base.packages`, subtraction, not a parallel list that drifts: keep the CLI, TUIs, docker, networking, security, and theming plumbing; drop compositor, shell, GUI apps, audio/bluetooth/printing stacks, fonts beyond the console.
-- Migrations and refresh commands that touch GUI surfaces gate on edition; everything else (pacman, snapper, CLI, themes' terminal side) runs identically. One update pipeline, two editions.
+- Refresh commands that touch GUI surfaces gate on edition; everything else (pacman, snapper, CLI, themes' terminal side) runs identically. One update pipeline, two editions.
 
 ### First boot
 
@@ -70,9 +70,9 @@ The existing provisioning flow, server flavor: hostname, user, then straight int
 
 ## Rollout
 
-- Phase 1 (this repo): `kestrel-edition` + predicates, `install/kestrel-server.packages`, edition gating in migrations/refresh commands, `kestrel-server-menu` + greeting + issue generation, theme bridge, `server` group in `GROUP_DESCRIPTIONS`.
+- Phase 1 (this repo): `kestrel-edition` + predicates, `install/kestrel-server.packages`, edition gating in refresh commands, `kestrel-server-menu` + greeting + issue generation, theme bridge, `server` group in `GROUP_DESCRIPTIONS`.
 - Phase 2 (coordinated): ISO/installer work in the ISO pipeline repo, a Server choice at install (or a separate slim ISO; open question), provisioning flow, offline mirror subset.
-- Docs: a manual section for Kestrel Server (install, first boot, the menu, greet settings, headless conventions); `docs/` reference for edition gating so future migrations know the rule.
+- Docs: a manual section for Kestrel Server (install, first boot, the menu, greet settings, headless conventions); `docs/` reference for edition gating so future changes know the rule.
 - Tests: greeting guards are the safety-critical bit, shell.d tests that non-interactive shells, scp/sftp, and `ssh host command` never see the menu; menu routing smoke tests; edition-predicate tests; CLI metadata via `kestrel commands --check`. Visual checks of splash/menu on a real console and over ssh per the visual-verification skill's spirit, adapted to a VM TTY.
 
 ## Open questions

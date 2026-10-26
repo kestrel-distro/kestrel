@@ -24,7 +24,7 @@ hl.config({
 
 ### My Wi-Fi, Bluetooth, audio, or trackpad just stopped working
 
-Before you reboot, try restarting the offending subsystem on its own. _Update > Hardware_ in the Kestrel menu has Wi-Fi, Bluetooth, Audio, and Trackpad, and reloading one of those clears up the majority of "it worked five minutes ago" situations, a Bluetooth headset that won't reconnect, a trackpad that went dead after a suspend, sound that vanished when you unplugged a monitor.
+Before you reboot, try restarting the offending subsystem on its own: `kestrel-restart-wifi`, `kestrel-restart-bluetooth`, `kestrel-restart-audio`, or `kestrel-restart-trackpad`. Restarting one of those clears up the majority of "it worked five minutes ago" situations, a Bluetooth headset that won't reconnect, a trackpad that went dead after a suspend, sound that vanished when you unplugged a monitor.
 
 ### Why are my external speakers not playing?
 

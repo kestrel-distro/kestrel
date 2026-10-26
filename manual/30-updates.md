@@ -1,6 +1,6 @@
 # Updates
 
-Kestrel updates in place from the Arch repositories. Run `pacman -Syu` in a
+Kestrel updates in place from the Arch repositories. Run `sudo pacman -Syu` in a
 terminal (and an AUR helper such as `yay -Sua` for any AUR packages you have
 installed).
 
@@ -20,9 +20,3 @@ it in the Limine boot menu. Once booted into the snapshot, run
 `/home` is kept.
 
 ![bootloader](images/bootloader.webp)
-
-### Migrations
-
-When a shipped default changes in a way a plain file copy can't handle,
-a migration brings an existing install in line. Pending migrations are offered
-once per login; click the notification (or run `kestrel-migrate`) to apply them.

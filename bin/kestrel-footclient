@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# kestrel:summary=Start a foot client with the active theme's palette
+# kestrel:hidden=true
+
+# A running `foot --server` reads foot.ini once at startup and never reloads it;
+# footclient only forwards command-line overrides to that server. Pass the
+# current theme's colors explicitly so a terminal opened after a theme switch is
+# not stuck on the palette the server booted with.
+theme="$HOME/.local/state/kestrel/current/theme/foot.ini"
+
+args=()
+if [[ -r $theme ]]; then
+  while IFS='=' read -r key value; do
+    case $key in '' | '#'* | '['*) continue ;; esac
+    args+=(-o "colors-dark.$key=$value")
+  done <"$theme"
+fi
+
+exec footclient "${args[@]}" "$@"

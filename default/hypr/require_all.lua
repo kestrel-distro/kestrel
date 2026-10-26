@@ -5,7 +5,7 @@
 --   require_all.files(paths.kestrel_path .. "/default/hypr/apps", "default.hypr.apps")
 -- Pass nil as the prefix when the directory itself has been added to package.path.
 -- Pass options.exclude as a set of base names (without ".lua") to skip; a legacy
--- file that must never be loaded as code stays on disk for a migration to remove.
+-- file that must never be loaded as code stays on disk but is not executed.
 
 local M = {}
 

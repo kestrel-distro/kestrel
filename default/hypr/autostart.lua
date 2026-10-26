@@ -1,16 +1,7 @@
-require("default.hypr.startup-cursor")
-
 hl.on("hyprland.start", function()
-  -- Applications inherit the user's cursor; only the compositor starts blank.
-  if kestrel_startup_cursor_pending then
-    hl.env("XCURSOR_PATH", kestrel_startup_cursor.path)
-    hl.env("XCURSOR_THEME", kestrel_startup_cursor.xcursor)
-  end
-
-  -- Force the cursor theme to load once the compositor is up. This is the
-  -- runtime fix verified by hand on the VM (`hyprctl setcursor Adwaita 24`);
-  -- doing it here means the pointer is never left on the blank startup cursor
-  -- when the scheduled restore misses its window.
+  -- Force the cursor theme to load once the compositor is up. There is no blank
+  -- startup theme: leaving Hyprland on one until a restore ran left the pointer
+  -- invisible whenever that restore was missed in the VM.
   hl.exec_cmd("sleep 1 && hyprctl keyword cursor:invisible false && hyprctl setcursor Adwaita 24")
 
   -- Slow app launch fix -- set systemd vars before starting session services.

@@ -580,9 +580,8 @@ jq -e 'all(.[]; .id != "kestrel.audio")' <<<"$geometry" >/dev/null || {
 
 pass "bar remove reloads shell config and updates bar layout"
 
-# 'bar put' is what migrations use to place a newly shipped widget, so it has
-# to place one that is missing and leave one that is already there alone,
-# however often it runs.
+# 'bar put' places a newly shipped widget, so it has to place one that is
+# missing and leave one that is already there alone, however often it runs.
 bar_put() {
   HOME="$test_home" KESTREL_PATH="$test_root" PATH="$ROOT/bin:$PATH" "$ROOT/bin/kestrel-bar" put "$@"
 }

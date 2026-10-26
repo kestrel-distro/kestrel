@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "eclipse.pomodoro",
+  "name": "Pomodoro",
+  "version": "1.2.0",
+  "author": "eclipse",
+  "description": "Floating pomodoro timer window",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Main.qml"
+  }
+}

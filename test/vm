@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# Run the Kestrel test suites inside a booted Kestrel guest.
+#
+# Do NOT run this on the workstation that builds the ISO. Several suites launch
+# a compositor, write under /etc, or assume a real Kestrel session, so they
+# belong in a VM (the live session or an installed system), reached over SSH or
+# from a guest terminal.
+#
+# Usage:
+#   test/vm                 # cli + shell + acceptance
+#   test/vm shell           # shell unit tests only
+#   test/vm acceptance      # in-guest desktop acceptance only
+#   test/vm cli             # cli suite only
+#   test/vm all             # test/all (cli + shell)
+#
+# Env:
+#   KESTREL_PATH        tree under test for acceptance (default /usr/share/kestrel)
+#   KESTREL_VM_LOG      log file (default /tmp/kestrel-vm-tests-<stamp>.log)
+#   Any suite-specific variable (KESTREL_PKGS_PATH, KESTREL_ACCEPTANCE_DIR, ...)
+#   is passed through unchanged.
+
+set -euo pipefail
+
+ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+
+log="${KESTREL_VM_LOG:-/tmp/kestrel-vm-tests-$(date +%Y%m%d-%H%M%S).log}"
+
+{
+  printf 'Kestrel VM test run %s\n' "$(date -Is)"
+  printf 'checkout: %s\n' "$ROOT"
+  printf 'kernel:   %s\n' "$(uname -r)"
+  printf 'log:      %s\n' "$log"
+} | tee "$log"
+
+suites=("$@")
+if (( ${#suites[@]} == 0 )); then
+  suites=(cli shell acceptance)
+fi
+
+failed=()
+for name in "${suites[@]}"; do
+  case "$name" in
+    cli|shell|acceptance) runner="$ROOT/test/$name" ;;
+    all) runner="$ROOT/test/all" ;;
+    *)
+      printf 'unknown suite: %s\n' "$name" >&2
+      exit 2
+      ;;
+  esac
+
+  printf '\n===== suite: %s =====\n' "$name" | tee -a "$log"
+  if "$runner" 2>&1 | tee -a "$log"; then
+    :
+  else
+    failed+=("$name")
+  fi
+done
+
+printf '\n===== summary =====\n' | tee -a "$log"
+if (( ${#failed[@]} == 0 )); then
+  printf 'all suites passed\n' | tee -a "$log"
+else
+  printf 'failed suites: %s\n' "${failed[*]}" | tee -a "$log"
+  printf 'full log: %s\n' "$log" | tee -a "$log"
+  exit 1
+fi

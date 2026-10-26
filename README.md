@@ -24,7 +24,7 @@ The installer copies the live system, so the installed machine matches the one y
 
 ## Updating
 
-Kestrel is a rolling release and tracks Arch directly. Update with `pacman -Syu`, and an AUR helper such as `yay -Sua` for AUR packages. There is no `kestrel update` command and no release channels: the system is the Arch base it was installed from, plus what Arch and the AUR provide.
+Kestrel is a rolling release and tracks Arch directly. Update with `sudo pacman -Syu`, and an AUR helper such as `yay -Sua` for AUR packages. There is no `kestrel update` command and no release channels: the system is the Arch base it was installed from, plus what Arch and the AUR provide.
 
 A post-transaction hook records a recovery snapshot after every upgrade (`default/snapper/root` keeps the two most recent). To roll back, select a snapshot in Limine and run `kestrel-snapshot restore`.
 
@@ -42,7 +42,6 @@ A post-transaction hook records a recovery snapshot after every upgrade (`defaul
 - `shell/` the Quickshell desktop.
 - `themes/` the themes.
 - `brand/` the logo source and the generator for the derived brand assets.
-- `migrations/` in-place fixes applied to existing installs when a default changes in a way a file copy cannot express.
 - `manual/`, `test/` as described above.
 
 ## The manual

@@ -42,4 +42,4 @@ Installing it also adds a web app for the Tailscale admin console.
 
 ## When it stops working
 
-Before rebooting, try restarting the offending piece on its own. _Update > Hardware_ has Wi-Fi, Bluetooth, Audio, and Trackpad, and reloading one of those clears up most "it worked five minutes ago" situations. See [troubleshooting](45-troubleshooting.md).
+Before rebooting, try restarting the offending piece on its own: `kestrel-restart-wifi`, `kestrel-restart-bluetooth`, `kestrel-restart-audio`, or `kestrel-restart-trackpad`. Restarting one of those clears up most "it worked five minutes ago" situations. See [troubleshooting](45-troubleshooting.md).

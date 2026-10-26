@@ -124,18 +124,17 @@ measure_terminal() {
 clear_logo() {
   measure_terminal
   printf "\033[H\033[2J"
-  gum style --foreground 2 --padding "1 0 0 $PADDING_LEFT" "$(<"$LOGO_PATH")"
+  printf '\n%s\n\n' "$(<"$LOGO_PATH")"
 }
 
 step() {
   clear_logo
   echo
-  gum style --padding "0 0 0 $PADDING_LEFT" "$1"
-  echo
+  printf '%s%s\n\n' "$PADDING_LEFT_SPACES" "$1"
 }
 
 say() {
-  gum style --padding "0 0 0 $PADDING_LEFT" "$@"
+  printf '%s%s\n' "$PADDING_LEFT_SPACES" "$*"
 }
 
 notice() {
@@ -605,7 +604,7 @@ confirm_reboot() {
   echo
   say "Setup starts again after the reboot."
   echo
-  gum confirm --affirmative "Yes, reboot" --negative "No, keep setting up" "Reboot this machine?"
+  kestrel_confirm "Reboot this machine?"
 }
 
 # Load the layout on the live VT and persist it for the installed system.
@@ -655,18 +654,16 @@ user_form() {
 confirm_form() {
   clear_logo
   echo
-  echo -e "Field,Value
-Keyboard,${keyboard_label:-English (US)}
-Username,$username
-Password,$(printf "%${#password}s" | tr ' ' '*')
-Full name,${full_name:-[Skipped]}
-Email address,${email_address:-[Skipped]}
-Hostname,${hostname:-kestrel}
-Timezone,${timezone:-UTC}" |
-    gum table -s "," -p | sed "s/^/${PADDING_LEFT_SPACES}/"
+  printf '%s%-14s %s\n' "$PADDING_LEFT_SPACES" "Keyboard" "${keyboard_label:-English (US)}" \
+    "$PADDING_LEFT_SPACES" "Username" "$username" \
+    "$PADDING_LEFT_SPACES" "Password" "$(printf "%${#password}s" | tr ' ' '*')" \
+    "$PADDING_LEFT_SPACES" "Full name" "${full_name:-[Skipped]}" \
+    "$PADDING_LEFT_SPACES" "Email address" "${email_address:-[Skipped]}" \
+    "$PADDING_LEFT_SPACES" "Hostname" "${hostname:-kestrel}" \
+    "$PADDING_LEFT_SPACES" "Timezone" "${timezone:-UTC}"
 
   echo
-  gum confirm --negative "No, change it" "Does this look right?"
+  kestrel_confirm "Does this look right?"
 }
 
 # Groups recorded by kestrel-apply-system's scripts at install time
@@ -740,7 +737,7 @@ create_user() {
     # collected this time around.
     usermod -aG "$(user_groups)" ${full_name:+-c "$full_name"} "$username"
   else
-    useradd -m -G "$(user_groups)" -s /bin/bash \
+    useradd -m -G "$(user_groups)" -s /usr/bin/fish \
       ${full_name:+-c "$full_name"} "$username"
   fi
 
@@ -1131,7 +1128,7 @@ main() {
     echo
     say --foreground 1 "Setup hit an error (details in $LOG_FILE)."
     echo
-    if ! gum confirm --affirmative "Try again" --negative "Drop to console" "Retry first-boot setup?"; then
+    if ! kestrel_confirm "Retry first-boot setup?"; then
       # Give an actual usable console: this service owns tty1 (and Conflicts the
       # getty), and on a failed deferred setup there's no user account and root
       # is locked, so exiting would strand the machine with no way in. Exec a

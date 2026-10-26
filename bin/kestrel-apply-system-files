@@ -136,7 +136,7 @@ done
 # new users get these via `useradd -m`. Trailing '.' keeps dotfiles.
 copy_tree "$src/config" /etc/skel/.config 644
 install_file "$src/default/bashrc" /etc/skel/.bashrc
-copy_tree "$src/default/hypr/toggles" /etc/skel/.local/state/kestrel/toggles/hypr 644
+install_file "$src/default/hypr/toggles/flags.lua" /etc/skel/.local/state/kestrel/toggles/hypr/flags.lua
 copy_tree "$src/default/nautilus-python/extensions" /etc/skel/.local/share/nautilus-python/extensions 644
 for app in "$src"/applications/*.desktop; do
   [[ -f $app ]] || continue

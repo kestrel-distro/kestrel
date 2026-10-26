@@ -38,7 +38,7 @@ if gum confirm "Enable sudoless Docker? This gives anything running as you passw
   echo "Sudoless Docker ENABLED. It takes effect after a reboot."
   echo "To disable it again: Setup > Security > Sudoless Docker."
   echo ""
-  # A caller such as a migration can defer the reboot to itself instead.
+  # A caller can defer the reboot to itself by setting KESTREL_DEFER_REBOOT.
   if [[ -z ${KESTREL_DEFER_REBOOT:-} ]] && gum confirm "Reboot now to apply?"; then
     kestrel-system-reboot
   fi

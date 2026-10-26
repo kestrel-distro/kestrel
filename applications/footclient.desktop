@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-TryExec=footclient
-Exec=footclient
+TryExec=kestrel-footclient
+Exec=kestrel-footclient
 Icon=foot
 Terminal=false
 Categories=System;TerminalEmulator;
@@ -18,4 +18,4 @@ X-TerminalArgDir=--working-directory=
 
 [Desktop Action New]
 Name=New Terminal
-Exec=footclient
+Exec=kestrel-footclient
