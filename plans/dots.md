@@ -24,7 +24,7 @@ desktop."
   app tokens, machine churn. A `.git` there gets discovered by editors and
   prompts. Can't cover `~/.bashrc` or `~/.XCompose`.
 - **`~/.config/kestrel` only**: too narrow; misses hypr, terminals, `.bashrc`.
-- **Stow**: inverted model requiring file migration; organization, not history.
+- **Stow**: inverted model requiring manual file relocation; organization, not history.
 - **chezmoi / yadm**: third-party DSLs we'd be wrapping; overkill.
 - **Raw git passthrough / lazygit over `$HOME`** (rejected in review):
   `git clean -fd`, `reset --hard`, or "stage all" against a `$HOME` work tree
@@ -54,7 +54,7 @@ access goes through one internal helper that runs git **hermetically**:
 - Serialized via a lock; concurrent refresh/update/manual snapshots queue.
 - **Best-effort everywhere**: a failed snapshot warns and continues. History
   is optional; updates are not. Never on the failure path of
-  `kestrel-update`/`kestrel-migrate` (`set -e` there must not see git errors).
+  `kestrel-update` (`set -e` there must not see git errors).
 
 ### Audited manifest, not a derived whitelist
 
@@ -65,7 +65,7 @@ a hand-audited file shipped with Kestrel, explicitly **not** derived from
 
 - Include: `.config/hypr/*.{lua,conf}`, `.config/kestrel/shell.json`,
   `.config/kestrel/extensions/**`, `.config/kestrel/hooks/**`,
-  terminal configs (alacritty/foot/ghostty/kitty), `.config/btop/btop.conf`,
+  terminal configs (alacritty/foot/kitty), `.config/btop/btop.conf`,
   `.config/starship.toml`, `.bashrc`, `.XCompose`.
 - Exclude (deliberately): `.config/kestrel/plugins/**` and
   `.config/kestrel/themes/**` (nested git clones managed by
@@ -82,10 +82,10 @@ a hand-audited file shipped with Kestrel, explicitly **not** derived from
 
 ### Dotfile-manager detection: stand down, don't fight
 
-`manual/31-dotfiles.md` sends users to Stow today, and migrations deliberately
-write *through* symlinks. For those users git records an unchanged symlink, so
-snapshots would be silent no-ops, and `restore` could stomp a symlink with a
-regular file. Therefore:
+`manual/31-dotfiles.md` sends users to Stow today, and the built-in manager
+deliberately writes *through* symlinks. For those users git records an unchanged
+symlink, so snapshots would be silent no-ops, and `restore` could stomp a symlink
+with a regular file. Therefore:
 
 - At seed time and before each snapshot: if manifest paths are symlinks or a
   known manager (yadm, chezmoi, existing bare-repo alias, `~/.git`) is
@@ -102,17 +102,13 @@ internal `kestrel-dots-snapshot "<label>"`:
 
 1. **`kestrel-provision-user`**: seed repo + initial commit, after `git.sh`
    and `.XCompose` are in place. Idempotent; `--force` must not re-init.
-2. **`kestrel-migrate`**: before/after pair labeled with version. Covers both
-   `kestrel-update` *and* the login-time migration path, and separates
-   migration changes from prior user dirt, the "before" commit captures user
-   edits, the "after" commit is purely what migrations did.
-3. **Batch refresh commands** (`kestrel-refresh-hyprland` etc.): one pair per
+2. **Batch refresh commands** (`kestrel-refresh-hyprland` etc.): one pair per
    command, not one commit per `kestrel-refresh-config` call (hyprland calls
    it seven times).
-4. **`kestrel-reinstall-configs`**: a "before" snapshot, honestly labeled.
+3. **`kestrel-reinstall-configs`**: a "before" snapshot, honestly labeled.
    This operation replays all of `/etc/skel`; a manifest repo does **not**
    make it reversible and we don't claim it does.
-5. **Timer**: an hourly-ish systemd user timer committing only if dirty, so
+4. **Timer**: an hourly-ish systemd user timer committing only if dirty, so
    hand edits are captured, without it, "restore my bindings from last week"
    fails for any edit not followed by an Kestrel operation.
 
@@ -178,7 +174,7 @@ No raw git surface. No lazygit integration.
 ## Rollout
 
 - New users: seeded by `kestrel-provision-user`.
-- Existing users: migration inits the repo + initial commit, **skippable and
+- Existing users: first-run init seeds the repo + initial commit, **skippable and
   bounded**: no-op if repo path exists, another manager is detected, or
   identity can't be synthesized; never adds beyond the manifest; never fails
   `kestrel update`.

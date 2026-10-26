@@ -64,7 +64,7 @@ active="$TMP/class/kestrel-browser.slice/active/cgroup.procs"
 [[ -s $active ]] && grep -qx "$BROWSER" "$active" || fail "browser moved to active"
 [[ -s $active ]] && grep -qx "$child" "$active" || fail "browser child moved to active"
 
-printf '%s ghostty\n' "$TERM" >"$HYPR_FILE"
+printf '%s foot\n' "$TERM" >"$HYPR_FILE"
 sleep 0.4
 bg="$TMP/class/kestrel-browser.slice/background/cgroup.procs"
 term="$TMP/class/kestrel-term.slice/cgroup.procs"

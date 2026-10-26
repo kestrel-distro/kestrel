@@ -30,7 +30,6 @@
   "setup": {"icon":"","label":"Setup","aliases":["settings"]},
   "install": {"icon":"󰉉","label":"Install"},
   "remove": {"icon":"󰭌","label":"Remove","aliases":["uninstall"]},
-  "update": {"icon":"","label":"Update","aliases":["restart","refresh"]},
   "about": {"icon":"","label":"About","action":"kestrel-launch-about"},
   "system": {"icon":"","label":"System","aliases":["power-menu"]},
 
@@ -153,7 +152,6 @@
   "setup.default.terminal": {"icon":"","label":"Terminal","title":"Default Terminal"},
   "setup.default.terminal.alacritty": {"icon":"","label":"Alacritty","checked":"[[ \"$(kestrel-default-terminal)\" == \"alacritty\" ]]","action":"kestrel-default-terminal alacritty"},
   "setup.default.terminal.foot": {"icon":"","label":"Foot","checked":"[[ \"$(kestrel-default-terminal)\" == \"foot\" ]]","action":"kestrel-default-terminal foot"},
-  "setup.default.terminal.ghostty": {"icon":"","label":"Ghostty","checked":"[[ \"$(kestrel-default-terminal)\" == \"ghostty\" ]]","action":"kestrel-default-terminal ghostty"},
   "setup.default.terminal.kitty": {"icon":"","label":"Kitty","checked":"[[ \"$(kestrel-default-terminal)\" == \"kitty\" ]]","action":"kestrel-default-terminal kitty"},
   "setup.default.editor": {"icon":"","label":"Editor","title":"Default Editor"},
   "setup.default.editor.neovim": {"icon":"","label":"Neovim","checked":"[[ \"$(kestrel-default-editor)\" == \"nvim\" ]]","action":"kestrel-default-editor nvim"},
@@ -234,7 +232,6 @@
   "install.editor.emacs": {"icon":"","label":"Emacs","disabled":"kestrel-pkg-present kestrel-emacs","action":"kestrel-launch-floating-terminal-with-presentation kestrel-install-editor-emacs"},
   "install.terminal.alacritty": {"icon":"","label":"Alacritty","disabled":"kestrel-pkg-present alacritty","action":"kestrel-launch-floating-terminal-with-presentation 'kestrel-install-terminal alacritty'"},
   "install.terminal.foot": {"icon":"","label":"Foot","disabled":"kestrel-pkg-present foot","action":"kestrel-launch-floating-terminal-with-presentation 'kestrel-install-terminal foot'"},
-  "install.terminal.ghostty": {"icon":"","label":"Ghostty","disabled":"kestrel-pkg-present ghostty","action":"kestrel-launch-floating-terminal-with-presentation 'kestrel-install-terminal ghostty'"},
   "install.terminal.kitty": {"icon":"","label":"Kitty","disabled":"kestrel-pkg-present kitty","action":"kestrel-launch-floating-terminal-with-presentation 'kestrel-install-terminal kitty'"},
   "install.ai.chatgpt": {"icon":"","iconFont":"kestrel","label":"ChatGPT Desktop","disabled":"kestrel-pkg-present openai-codex-desktop","action":"kestrel-launch-floating-terminal-with-presentation kestrel-install-ai-chatgpt"},
   "install.ai.claude": {"icon":"","iconFont":"kestrel","label":"Claude Desktop","disabled":"kestrel-pkg-present claude-desktop","action":"kestrel-launch-floating-terminal-with-presentation kestrel-install-ai-claude"},

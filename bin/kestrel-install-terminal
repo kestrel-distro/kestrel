@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # kestrel:summary=Install one of the approved terminals and set it as the default for Kestrel (Super + Return etc).
-# kestrel:args=<alacritty|foot|ghostty|kitty>
+# kestrel:args=<alacritty|foot|kitty>
 # kestrel:requires-sudo=true
 
 if (($# == 0)); then
-  echo "Usage: kestrel-install-terminal [alacritty|foot|ghostty|kitty]"
+  echo "Usage: kestrel-install-terminal [alacritty|foot|kitty]"
   exit 1
 fi
 
@@ -14,8 +14,7 @@ package="$1"
 # Map package name to desktop entry ID
 case "$package" in
 alacritty) desktop_id="Alacritty.desktop" ;;
-foot) desktop_id="foot.desktop" ;;
-ghostty) desktop_id="com.mitchellh.ghostty.desktop" ;;
+foot) desktop_id="footclient.desktop" ;;
 kitty) desktop_id="kitty.desktop" ;;
 *)
   echo "Unknown terminal: $package"

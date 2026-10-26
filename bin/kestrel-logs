@@ -1,0 +1,32 @@
+#!/bin/bash
+# DEV ONLY - remove before release. Collect session logs into the host share
+# when the VM provides it, otherwise into the user's state directory.
+
+set -euo pipefail
+stamp=$(date +%Y%m%d-%H%M%S)
+if [[ -d /mnt/kestrel-host-logs ]]; then
+  out="/mnt/kestrel-host-logs/logs-$stamp"
+else
+  out="${XDG_STATE_HOME:-$HOME/.local/state}/kestrel/logs/$stamp"
+fi
+mkdir -p "$out"
+{
+  echo "== identity =="; date -Is; uname -a; systemd-detect-virt || true
+  echo; echo "== os-release =="; cat /etc/os-release
+  echo; echo "== sched_ext =="; cat /sys/kernel/sched_ext/root/ops 2>/dev/null || true
+  echo; echo "== packages =="; pacman -Q scx-kestrel scx-tools-kestrel kestrel-broker libkestrel-hint foot fastfetch 2>&1 || true
+  echo; echo "== units =="; systemctl status scx_loader --no-pager 2>&1 || true
+  systemctl --user status kestrel-slices kestrel-broker --no-pager 2>&1 || true
+  echo; echo "== session =="; hyprctl monitors 2>&1 || true; hyprctl clients 2>&1 || true
+  hyprctl getoption cursor:no_hardware_cursors 2>&1 || true
+  hyprctl getoption cursor:invisible 2>&1 || true
+  echo; echo "== scxctl =="; scxctl get 2>&1 || true; scxctl list 2>&1 || true
+} >"$out/session.txt" 2>&1
+journalctl -b --no-pager >"$out/journal.log" 2>&1 || true
+if [[ -d /mnt/kestrel-host-logs ]]; then
+  cp -a /mnt/kestrel-host-logs/vm-report-*.log "$out/" 2>/dev/null || true
+  cp -a /mnt/kestrel-host-logs/shells "$out/" 2>/dev/null || true
+fi
+cp -a "${XDG_STATE_HOME:-$HOME/.local/state}/kestrel/logs/shells" "$out/" 2>/dev/null || true
+tar -C "$(dirname "$out")" -czf "$out.tar.gz" "$(basename "$out")"
+echo "wrote $out.tar.gz"

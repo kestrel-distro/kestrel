@@ -17,6 +17,7 @@ require("default.hypr.looknfeel")
 require("default.hypr.qconsole")
 require("default.hypr.input")
 require("default.hypr.windows")
+require("default.hypr.virt")
 
 -- Current theme overrides.
 require_optional.module("kestrel.current.theme.hyprland")

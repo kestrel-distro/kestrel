@@ -1,4 +1,4 @@
-# Kestrel class: interactive terminals (Ghostty and friends).
+# Kestrel class: interactive terminals (foot and friends).
 #
 # Kept eligible for systemd-oomd so memory pressure takes a terminal rather
 # than the compositor, matching app.slice.d/10-oomd.conf.

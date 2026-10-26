@@ -28,7 +28,7 @@ local non_latin_layouts =
 
 local vconsole = read_vconsole()
 
-local kb_layout = vconsole.XKBLAYOUT or "us"
+local kb_layout = vconsole.XKBLAYOUT or vconsole.KEYMAP or "es"
 local kb_variant = vconsole.XKBVARIANT or ""
 -- CapsLock is the compose key, so Caps Lock itself has to live somewhere else.
 -- Both Shifts together is the usual home for it, but it's easy to hit by
@@ -78,4 +78,3 @@ hl.config({
 o.window("(Alacritty|kitty)", { scroll_touchpad = 1.5 })
 -- foot only applies its scrollback multiplier to wheel clicks, not precise touchpad scrolling.
 o.window("foot", { scroll_touchpad = 2.0 })
-o.window("com.mitchellh.ghostty", { scroll_touchpad = 0.2 })

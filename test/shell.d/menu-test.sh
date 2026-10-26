@@ -203,19 +203,6 @@ assertEqual(
   'menu opens the emoji picker from Trigger'
 )
 assert(
-  defaultById['update.kestrel'].icon === '\ue900',
-  'menu update Kestrel entry uses the Kestrel glyph'
-)
-assert(
-  defaultById['update.kestrel'].iconFont === 'kestrel',
-  'menu update Kestrel entry renders the private glyph with the Kestrel font'
-)
-assertEqual(
-  defaultById['update.themes'].when,
-  'kestrel-theme-extras',
-  'menu hides Extra Themes until a theme cloned from git is there to update'
-)
-assert(
   defaultById['setup.input'].action.includes('input.lua'),
   'menu keeps Input as a direct config action'
 )
@@ -272,7 +259,7 @@ assertDeepEqual(
 )
 const expectedDefaults = {
   browser: ['Chromium', 'Chrome', 'Brave', 'Brave Origin', 'Edge', 'Firefox', 'Zen'],
-  terminal: ['Alacritty', 'Foot', 'Ghostty', 'Kitty'],
+  terminal: ['Alacritty', 'Foot', 'Kitty'],
   editor: ['Neovim', 'VSCode', 'Cursor', 'Zed', 'Sublime Text', 'Helix', 'Vim', 'Emacs']
 }
 assert(

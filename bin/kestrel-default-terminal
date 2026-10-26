@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # kestrel:summary=Set the default terminal used by xdg-terminal-exec
-# kestrel:args=[alacritty|foot|ghostty|kitty]
-# kestrel:examples=kestrel default terminal ghostty | kestrel default terminal kitty
+# kestrel:args=[alacritty|foot|kitty]
+# kestrel:examples=kestrel default terminal foot | kestrel default terminal kitty
 
 installing=false
 if [[ ${1:-} == "--install" ]]; then
@@ -15,8 +15,7 @@ if (($# == 0)); then
   desktop_id=${desktop_id%%:*}
   case "$desktop_id" in
   Alacritty.desktop) echo "alacritty" ;;
-  foot.desktop) echo "foot" ;;
-  com.mitchellh.ghostty.desktop) echo "ghostty" ;;
+  footclient.desktop | foot.desktop) echo "foot" ;;
   kitty.desktop) echo "kitty" ;;
   *) echo "$desktop_id" ;;
   esac
@@ -25,11 +24,10 @@ fi
 
 case "$1" in
 alacritty) terminal="alacritty"; desktop_id="Alacritty.desktop"; name="Alacritty"; glyph= ;;
-foot) terminal="foot"; desktop_id="foot.desktop"; name="Foot"; glyph= ;;
-ghostty) terminal="ghostty"; desktop_id="com.mitchellh.ghostty.desktop"; name="Ghostty"; glyph= ;;
+foot) terminal="footclient"; desktop_id="footclient.desktop"; name="Foot"; glyph= ;;
 kitty) terminal="kitty"; desktop_id="kitty.desktop"; name="Kitty"; glyph= ;;
 *)
-  echo "Usage: kestrel-default-terminal <alacritty|foot|ghostty|kitty>"
+  echo "Usage: kestrel-default-terminal <alacritty|foot|kitty>"
   exit 1
   ;;
 esac

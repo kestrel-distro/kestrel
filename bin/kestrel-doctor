@@ -1,0 +1,20 @@
+#!/bin/bash
+# DEV ONLY - remove before release. Terminal/cursor/fastfetch diagnostics.
+set -euo pipefail
+say() { printf '\n== %s ==\n' "$*"; }
+say "terminals"
+command -v foot footclient fastfetch script || true
+xdg-terminal-exec --print-id 2>&1 || true
+cat ~/.config/xdg-terminals.list 2>/dev/null || true
+say "foot server"
+ls -l "${XDG_RUNTIME_DIR}/foot.sock" 2>&1 || true
+pgrep -af 'foot --server|footclient' || true
+say "cursor"
+hyprctl getoption cursor:no_hardware_cursors 2>&1 || true
+hyprctl getoption cursor:invisible 2>&1 || true
+hyprctl getoption cursor:enable_hyprcursor 2>&1 || true
+say "hint"
+kestrel-hint supported 2>&1 || true
+kestrel-hint set self 3 2>&1 || true
+kestrel-hint get self 2>&1 || true
+uname -r

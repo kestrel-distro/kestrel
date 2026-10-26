@@ -9,10 +9,22 @@ function kestrel_startup_cursor_restore(loaded)
       hl.exec_cmd("hyprctl setcursor " .. o.shell_quote(cursor.hyprcursor) .. " " .. cursor.size)
     end
   elseif not cursor.restoring then
-    -- Reload the normal Xcursor fallback before enabling Hyprcursor or GSettings.
     cursor.restoring = true
-    hl.exec_cmd("hyprctl setcursor " .. o.shell_quote(cursor.xcursor) .. " " .. cursor.size
-      .. " && hyprctl eval 'kestrel_startup_cursor_restore(true)'")
+    -- Restore the saved cursor config (invisible = false) first and
+    -- unconditionally. The compositor cursor must return even when the theme
+    -- cannot be switched: gating this on `hyprctl setcursor` succeeding left
+    -- `cursor.invisible` set, and the pointer hidden, for the whole session
+    -- whenever the theme was not loadable at reveal time.
+    --
+    -- The keyword is applied synchronously. A setcursor that lands while the
+    -- compositor still considers the cursor hidden is dropped (setCursorFromName
+    -- returns early without loading the theme), leaving the blank startup cursor
+    -- in place for the rest of the session.
+    hl.config({ cursor = cursor.config })
+    hl.exec_cmd("hyprctl keyword cursor:invisible false >/dev/null 2>&1; "
+      .. "hyprctl setcursor " .. o.shell_quote(cursor.xcursor) .. " " .. cursor.size
+      .. " || hyprctl setcursor Adwaita " .. cursor.size
+      .. " || true; hyprctl eval 'kestrel_startup_cursor_restore(true)'")
   end
 end
 
@@ -31,7 +43,8 @@ hl.on("config.reloaded", function()
         hyprcursor = os.getenv("HYPRCURSOR_THEME"),
         size = tonumber((hyprcursor and os.getenv("HYPRCURSOR_SIZE")) or os.getenv("XCURSOR_SIZE")) or 24,
         path = os.getenv("XCURSOR_PATH") or "~/.local/share/icons:~/.icons:/usr/share/icons:/usr/share/pixmaps",
-        xcursor = os.getenv("XCURSOR_THEME") or "default",
+        -- Never restore the blank startup theme itself.
+        xcursor = (os.getenv("XCURSOR_THEME") ~= "kestrel-startup" and os.getenv("XCURSOR_THEME")) or "Adwaita",
       }
       if kestrel_startup_cursor.size <= 0 then kestrel_startup_cursor.size = 24 end
       hl.env("XCURSOR_PATH", os.getenv("KESTREL_PATH") .. "/default/hypr/cursors:" .. kestrel_startup_cursor.path)

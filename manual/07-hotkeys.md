@@ -266,22 +266,12 @@ These functions must be run inside a Tmux session.
 | `tdlm <ai> [<second_ai>]` | Create dev layout per subdirectory |
 | `tsl <count> <command>` | Create multi-pane swarm layout |
 
-## Ghostty Terminal
+## Foot Terminal
 
-Ghostty terminal is installed using _Install > Terminal_ via the Kestrel menu.
-
-| Hotkey                  | Function              |
-| ----------------------- | --------------------- |
-| `Ctrl + Shift + E` | New split below |
-| `Ctrl + Shift + O` | New split besides |
-| `Ctrl + Alt + Arrows` | Move between splits |
-| `Super + Ctrl + Shift + Arrows` | Resize split by 10 lines |
-| `Super + Ctrl + Shift + Alt + Arrows` | Resize split by 100 lines |
-| `Ctrl + Shift + T` | New tab  |
-| `Ctrl + Shift + Arrows` | Move between tabs |
-| `Alt + Numbers` | Go to specific tab |
-| `Shift + Pg Up/Down` | Scroll the history |
-| `Ctrl + Left mouse` | Open link in browser |
+Foot is the default terminal and runs as a shared server: `Super + Return`
+opens a `footclient` window connected to it, so fonts and glyph caches stay
+warm. Foot's own key bindings are listed in `foot.ini`; Kestrel does not add
+terminal-specific chords.
 
 ## File Manager
 

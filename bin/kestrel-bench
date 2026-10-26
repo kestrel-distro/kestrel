@@ -1,0 +1,71 @@
+#!/bin/bash
+# DEV ONLY - remove before release. One-command kernel-bridge check and
+# bpfland-vs-scx_kestrel A/B for the VM/installed system.
+
+set -euo pipefail
+
+stamp=$(date +%Y%m%d-%H%M%S)
+if [[ -d /mnt/kestrel-host-logs ]]; then
+  out="/mnt/kestrel-host-logs/bench-$stamp"
+else
+  out="${XDG_STATE_HOME:-$HOME/.local/state}/kestrel/bench/$stamp"
+fi
+mkdir -p "$out"
+log="$out/kestrel-bench.log"
+exec > >(tee -a "$log") 2>&1
+
+say() { printf '\n== %s ==\n' "$*"; }
+as_root() { if ((EUID == 0)); then "$@"; else sudo "$@"; fi; }
+
+say "identity"
+uname -r
+cat /etc/os-release | sed -n 's/^NAME=/NAME=/p; s/^VERSION_ID=/VERSION_ID=/p'
+systemd-detect-virt || true
+
+say "services"
+sudo systemctl start scx_loader
+systemctl --user start kestrel-slices.service kestrel-broker.service || true
+systemctl is-active scx_loader kestrel-damon-reclaim.service || true
+systemctl --user is-active kestrel-slices.service kestrel-broker.service || true
+scxctl list | grep -i kestrel || true
+
+say "kernel hint"
+kestrel-hint supported || true
+kestrel-hint set "$$" 3 || true
+kestrel-hint get "$$" || true
+as_root scxctl switch --sched scx_kestrel || true
+cat /sys/kernel/sched_ext/root/ops 2>/dev/null || true
+
+say "bridge"
+systemctl --user status kestrel-slices.service kestrel-broker.service --no-pager || true
+KESTREL_BROKER_DRY_RUN=1 kestrel-broker --once || true
+pgrep -x foot >/dev/null && echo "foot server: $(pgrep -x foot | tr '\n' ' ')" || true
+pgrep -x footclient >/dev/null && echo "footclient: $(pgrep -x footclient | tr '\n' ' ')" || true
+pgrep -x Hyprland >/dev/null && kestrel-hint get "$(pgrep -x Hyprland)" || true
+
+say "tests"
+/usr/share/kestrel/test/vm cli shell acceptance || echo "test/vm failed (see above)"
+
+say "bench"
+bench="/usr/share/kestrel-bench/bench"
+if [[ ! -x $bench/scx ]]; then
+  bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
+  if [[ ! -x $bench/scx ]]; then
+    mkdir -p "$HOME/.cache/kestrel/bench-src"
+    git clone --depth 1 https://github.com/kestrel-distro/kernel "$HOME/.cache/kestrel/bench-src/kernel"
+    bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
+  fi
+fi
+cp -a "$bench" "$out/bench-harness"
+cd "$out/bench-harness"
+for run in 1 2 3; do
+  KESTREL_SCX_AB="scx_bpfland: scx_kestrel:" \
+  KESTREL_BENCH_MODE=session \
+  KESTREL_BENCH_SESSION_SECONDS=30 \
+  KESTREL_SCX_SETTLE=10 \
+  ./scx "run$run" || echo "bench run$run failed"
+done
+ls -1 results | tail -20 || true
+
+say "done"
+echo "results: $out"

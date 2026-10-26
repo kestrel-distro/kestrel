@@ -25,9 +25,7 @@ hyprwire-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprwire
 aquamarine-kestrel=https://github.com/kestrel-distro/desktop#packaging/aquamarine
 qt6-base-kestrel=https://github.com/kestrel-distro/desktop#packaging/qt6-base
 
-# Kernel bridge: hint library, broker, scheduler, loader fork, patched Ghostty.
 libkestrel-hint=https://github.com/kestrel-distro/kestrel#packaging/libkestrel-hint
 kestrel-broker=https://github.com/kestrel-distro/kestrel#packaging/kestrel-broker
 scx-kestrel=https://github.com/kestrel-distro/scx#packaging/arch
 scx-tools-kestrel=https://github.com/kestrel-distro/scx-loader#packaging/arch
-ghostty-kestrel=https://github.com/kestrel-distro/ghostty

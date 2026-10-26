@@ -179,7 +179,7 @@ def check_broker() -> None:
     text = need(ROOT / "bin/kestrel-broker", "broker")
     if text is None:
         return
-    check_regex(text, "broker", r"\*ghostty\*\)\s*echo\s+term", "Ghostty class")
+    check_regex(text, "broker", r"\*foot\*\)\s*echo\s+term", "foot class")
     check_regex(text, "broker", r"\*zen\*[^)]*\*firefox\*\)\s*echo\s+browser", "browser class")
     for sub in ("active", "background"):
         check_contains(text, "broker", f'class_dir browser)/{sub}', "browser buckets")
@@ -203,14 +203,6 @@ def main() -> int:
     qs = need(SIB / "quickshell/src/kestrel/KestrelHint.hpp", "quickshell")
     check_c_constants(qs, "quickshell")
     check_contains(read(SIB / "quickshell/src/launch/main.cpp"), "quickshell", "setProcess(1)", "startup hint")
-
-    ghostty = need(SIB / "ghostty/src/kestrel_hint.zig", "ghostty")
-    if ghostty is not None:
-        check_regex(ghostty, "ghostty", r"FLAG:\s*u64\s*=\s*1\s*<<\s*40", "hint flag")
-        check_regex(ghostty, "ghostty", r"KEEP_POLICY:\s*u64\s*=\s*0x08", "keep-policy")
-        check_regex(ghostty, "ghostty", r"KEEP_PARAMS:\s*u64\s*=\s*0x10", "keep-params")
-        check_regex(ghostty, "ghostty", r"sched_ext_hint:\s*u32", "sched_ext_hint member")
-        check_contains(read(SIB / "ghostty/src/main_ghostty.zig"), "ghostty", "setProcess(2)", "startup hint")
 
     zen = SIB / "zen-browser/kestrel/firefox-kestrel-hint.patch"
     zen_text = read(zen)

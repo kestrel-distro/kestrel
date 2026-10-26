@@ -5,7 +5,7 @@
 # most; the shell drives the bar, so it comes next.
 {"name": "Hyprland", "nice": -10}
 {"name": "quickshell", "nice": -5}
-{"name": "ghostty", "nice": -2}
+{"name": "foot", "nice": -2}
 
 {"name": "baloo_file", "nice": 19}
 {"name": "tracker-miner-fs-3", "nice": 19}

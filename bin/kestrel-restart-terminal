@@ -10,6 +10,9 @@ if pgrep -x kitty >/dev/null; then
   killall -SIGUSR1 kitty >/dev/null
 fi
 
-if pgrep -x ghostty >/dev/null; then
-  killall -SIGUSR2 ghostty
+# foot has no config reload. Restart the shared server so the next client
+# picks up the config; existing terminal windows close with it.
+if pgrep -f 'foot --server' >/dev/null; then
+  pkill -f 'foot --server'
+  setsid foot --server >/dev/null 2>&1 &
 fi

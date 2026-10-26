@@ -4,6 +4,18 @@
 # If not running interactively, don't do anything else (leave this above the rc source)
 [[ $- != *i* ]] && return
 
+# Capture every interactive shell to the host share (VM) or the local state
+# directory. DEV ONLY: remove with kestrel-bench before release.
+if [[ -z ${KESTREL_SHELL_LOGGED:-} ]] && command -v script >/dev/null; then
+  log_root=/mnt/kestrel-host-logs/shells
+  [[ -d /mnt/kestrel-host-logs ]] || log_root="${XDG_STATE_HOME:-$HOME/.local/state}/kestrel/logs/shells"
+  day=$(date +%F)
+  if mkdir -p "$log_root/$day" 2>/dev/null; then
+    export KESTREL_SHELL_LOGGED=1
+    exec script -q -f -c "$SHELL" "$log_root/$day/$(date +%H%M%S)-$(tty 2>/dev/null | tr / _)-$$.log"
+  fi
+fi
+
 # All the default Kestrel aliases and functions
 # (don't mess with these directly, just overwrite them here!)
 source "$KESTREL_PATH/default/bash/rc"
