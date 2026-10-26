@@ -151,3 +151,5 @@ yazi
 # Disk health and mirror maintenance
 reflector
 smartmontools
+
+lz4

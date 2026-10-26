@@ -22,6 +22,12 @@ uname -r
 cat /etc/os-release | sed -n 's/^NAME=/NAME=/p; s/^VERSION_ID=/VERSION_ID=/p'
 systemd-detect-virt || true
 
+say "boot"
+systemd-analyze 2>&1 || true
+systemd-analyze blame 2>&1 | head -15 || true
+systemd-analyze critical-chain 2>&1 | head -30 || true
+systemd-analyze plot >"$out/boot.svg" 2>/dev/null || true
+
 say "services"
 sudo systemctl start scx_loader
 systemctl --user start kestrel-slices.service kestrel-broker.service || true
@@ -47,6 +53,18 @@ pgrep -x foot >/dev/null && echo "foot server: $(pgrep -x foot | tr '\n' ' ')" |
 pgrep -x footclient >/dev/null && echo "footclient: $(pgrep -x footclient | tr '\n' ' ')" || true
 pgrep -x Hyprland >/dev/null && kestrel-hint get "$(pgrep -x Hyprland)" || true
 
+say "app hints"
+for name in Hyprland quickshell foot zen; do
+  pid=$(pgrep -x "$name" 2>/dev/null | head -1)
+  [[ -n $pid ]] || continue
+  printf '%-12s pid=%s hint=%s\n' "$name" "$pid" "$(kestrel-hint get "$pid" 2>/dev/null || echo '?')"
+done
+if pid=$(pgrep -x foot 2>/dev/null | head -1); then
+  ps -T -p "$pid" -o spid=,comm= 2>/dev/null | while read -r tid comm; do
+    [[ $comm == foot ]] && printf 'foot thread %s hint=%s\n' "$tid" "$(kestrel-hint get "$tid" 2>/dev/null || echo '?')"
+  done
+fi
+
 say "tests"
 /usr/share/kestrel/test/vm cli shell acceptance || echo "test/vm failed (see above)"
 
@@ -70,6 +88,13 @@ for run in 1 2 3; do
   ./scx "run$run" || echo "bench run$run failed"
 done
 ls -1 results | tail -20 || true
+
+say "foot workers"
+if [[ -x ./foot-workers ]]; then
+  ./foot-workers "${KESTREL_FOOT_TERMS:-8}" || echo "foot worker matrix failed"
+else
+  echo "foot-workers harness not present"
+fi
 
 say "done"
 echo "results: $out"
