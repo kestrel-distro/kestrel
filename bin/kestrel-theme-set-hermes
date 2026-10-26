@@ -195,9 +195,8 @@ fi
 
 # The probe vets the command before anything here runs it: a wrapper that is
 # not a working Hermes, or the retired mise stub that would build one.
-if ! kestrel-install-hermes-cli --check 2>/dev/null; then
-  note "Hermes is not ready, so the Kestrel skin is published but not active."
-  note "Once Hermes runs, activate it with: hermes config set display.skin $HERMES_SKIN_NAME"
+if ! kestrel-cmd-present hermes; then
+  note "Hermes is not installed, so the Kestrel skin is published but not active."
   exit 0
 fi
 

@@ -25,6 +25,10 @@ systemd-detect-virt || true
 say "services"
 sudo systemctl start scx_loader
 systemctl --user start kestrel-slices.service kestrel-broker.service || true
+if [[ ! -S ${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/foot.sock ]]; then
+  systemctl --user start foot-server.service 2>/dev/null ||
+    { pgrep -f '^foot --server' >/dev/null || (foot --server >/dev/null 2>&1 &); }
+fi
 systemctl is-active scx_loader kestrel-damon-reclaim.service || true
 systemctl --user is-active kestrel-slices.service kestrel-broker.service || true
 scxctl list | grep -i kestrel || true

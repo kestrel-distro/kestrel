@@ -17,9 +17,10 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("systemctl --user import-environment $(env | cut -d'=' -f 1)")
   hl.exec_cmd("dbus-update-activation-environment --systemd --all")
 
-  -- One shared foot server: every terminal is a footclient, so fonts and
-  -- glyph caches stay warm across windows.
-  hl.exec_cmd("sh -c 'pgrep -f \"foot --server\" >/dev/null || exec foot --server'")
+
+  -- One shared foot server in the terminal class. Wait for the first-run
+  -- theme so the included foot palette exists, then let systemd place it.
+  hl.exec_cmd("sh -c 'for i in $(seq 1 100); do [ -f \"$HOME/.local/state/kestrel/current/theme/foot.ini\" ] && break; sleep 0.1; done; systemctl --user start foot-server.service || exec foot --server'")
 
   hl.exec_cmd("kestrel-launch-shell")
   hl.exec_cmd("kestrel-provision-first-run")

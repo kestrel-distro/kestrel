@@ -40,20 +40,8 @@ nvim) selection="nvim"; editor="nvim"; name="Neovim"; glyph= ;;
 esac
 
 if kestrel-cmd-missing "$editor"; then
-  if [[ $installing == "false" ]]; then
-    exec kestrel-launch-floating-terminal-with-presentation kestrel-default-editor --install "$selection"
-  else
-    case "$selection" in
-    code) kestrel-install-editor-vscode ;;
-    cursor) kestrel-pkg-add cursor-bin ;;
-    zed) kestrel-install-editor-zed ;;
-    sublime_text) kestrel-pkg-add sublime-text-4 ;;
-    helix) kestrel-install-editor-helix ;;
-    vim) kestrel-pkg-add vim ;;
-    emacs) kestrel-install-editor-emacs ;;
-    nvim) kestrel-pkg-add neovim ;;
-    esac || exit 1
-  fi
+  echo "$name is not installed" >&2
+  exit 1
 fi
 
 mkdir -p "$(dirname "$editor_file")"

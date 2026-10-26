@@ -93,6 +93,17 @@ move_tree() {
   done < <(tree_pids "$pid")
 }
 
+# footclient processes are separate from the foot server, so the focused
+# window's PID does not lead to them. Keep the client proxies in the terminal
+# class as well.
+move_footclients() {
+  local p term
+  term="$(class_dir term)"
+  for p in $(pgrep -x footclient 2>/dev/null); do
+    move_pid "$p" "$term"
+  done
+}
+
 # The focused window's pid and class, tab-separated.
 focused() {
   hyprctl -j activewindow 2>/dev/null |
@@ -131,6 +142,7 @@ place() {
       *) move_pid "$pid" "$(class_dir "$kclass")" ;;
     esac
   fi
+  move_footclients
   PLACED_PID="$pid"
   PLACED_CLASS="$kclass"
 }

@@ -94,7 +94,7 @@ kestrel_username_taken() { return 1; }
 kestrel_prompt_keyboard() {
   local choice status
   choice=$(printf '%s\n' "$KESTREL_KEYBOARD_LAYOUTS" | cut -d'|' -f1 |
-    gum choose --height 10 --selected "English (US)" --header "Select keyboard layout") && status=0 || status=$?
+    gum choose --height 10 --selected "Spanish" --header "Select keyboard layout") && status=0 || status=$?
   ((status == 0)) || return $status
 
   keyboard_label="$choice"
@@ -104,7 +104,7 @@ kestrel_prompt_keyboard() {
 kestrel_prompt_username() {
   local status
   while true; do
-    username=$(gum input --placeholder "Alphanumeric without spaces (like dhh)" --prompt.foreground="#845DF9" --prompt "Username> ") && status=0 || status=$?
+    username=$(gum input --width 80 --placeholder "Alphanumeric without spaces (like dhh)" --prompt.foreground="#845DF9" --prompt "Username> ") && status=0 || status=$?
     ((status == 0)) || return $status
 
     if [[ "$username" =~ $KESTREL_USERNAME_PATTERN ]]; then
@@ -124,9 +124,9 @@ kestrel_prompt_username() {
 kestrel_prompt_password() {
   local status
   while true; do
-    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#845DF9" --password --prompt "Password> ") && status=0 || status=$?
+    password=$(gum input --width 80 --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#845DF9" --password --prompt "Password> ") && status=0 || status=$?
     ((status == 0)) || return $status
-    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") && status=0 || status=$?
+    password_confirmation=$(gum input --width 80 --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") && status=0 || status=$?
     ((status == 0)) || return $status
 
     if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
@@ -143,16 +143,16 @@ kestrel_prompt_password() {
 # only Esc/Ctrl+C end the prompt early.
 kestrel_prompt_identity() {
   local status
-  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Full name> ") && status=0 || status=$?
+  full_name=$(gum input --width 80 --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Full name> ") && status=0 || status=$?
   ((status == 0)) || return $status
-  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ") && status=0 || status=$?
+  email_address=$(gum input --width 80 --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ") && status=0 || status=$?
   return $status
 }
 
 kestrel_prompt_hostname() {
   local status
   while true; do
-    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'kestrel')" --prompt.foreground="#845DF9" --prompt "Hostname> ") && status=0 || status=$?
+    hostname=$(gum input --width 80 --placeholder "Letters, digits, and dashes (or return for 'kestrel')" --prompt.foreground="#845DF9" --prompt "Hostname> ") && status=0 || status=$?
     ((status == 0)) || return $status
 
     if [[ -z $hostname ]]; then

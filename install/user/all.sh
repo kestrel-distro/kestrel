@@ -1,4 +1,5 @@
 run_logged "$KESTREL_INSTALL/user/theme.sh"
+run_logged "$KESTREL_INSTALL/user/foot-workers.sh"
 run_logged "$KESTREL_INSTALL/user/chromium.sh"
 run_logged "$KESTREL_INSTALL/user/git.sh"
 run_logged "$KESTREL_INSTALL/user/xcompose.sh"

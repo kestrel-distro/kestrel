@@ -204,6 +204,11 @@ def main() -> int:
     check_c_constants(qs, "quickshell")
     check_contains(read(SIB / "quickshell/src/launch/main.cpp"), "quickshell", "setProcess(1)", "startup hint")
 
+    foot = need(SIB / "foot/kestrel_hint.h", "foot")
+    check_c_constants(foot, "foot")
+    for src in ("main.c", "client.c", "render.c", "spawn.c"):
+        check_contains(read(SIB / "foot" / src), "foot", "kestrel_hint_set(0, 2)", src)
+
     zen = SIB / "zen-browser/kestrel/firefox-kestrel-hint.patch"
     zen_text = read(zen)
     if zen_text is None:

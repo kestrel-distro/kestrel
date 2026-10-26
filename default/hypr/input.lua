@@ -75,6 +75,5 @@ hl.config({
 })
 
 -- Scroll nicely in the terminal.
-o.window("(Alacritty|kitty)", { scroll_touchpad = 1.5 })
 -- foot only applies its scrollback multiplier to wheel clicks, not precise touchpad scrolling.
 o.window("foot", { scroll_touchpad = 2.0 })

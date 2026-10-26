@@ -11,5 +11,6 @@ if [[ -n $WINDOW_ADDRESS ]]; then
 elif [[ -x /usr/bin/signal-desktop ]]; then
   exec setsid uwsm-app -- /usr/bin/signal-desktop
 else
-  exec kestrel-launch-floating-terminal-with-presentation kestrel-install-service-signal
+  echo "Signal is not installed" >&2
+  exit 1
 fi

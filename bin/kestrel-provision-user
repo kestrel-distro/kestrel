@@ -18,8 +18,8 @@ default browser, and install/user/all.sh.
 For shipped configs see /etc/skel (new users); existing users resync by
 replaying /etc/skel over $HOME.
 
---first-install is used by the ISO in the target chroot. It marks shipped
-migrations complete for the freshly-created user.
+--first-install is used by the ISO in the target chroot; it sets the
+iso-chroot setup context.
 
 Idempotency marker: ~/.local/state/kestrel/done/finalize-user
 USAGE
@@ -97,13 +97,12 @@ done
 source "$KESTREL_INSTALL/user/all.sh"
 
 kestrel-refresh-applications
-env -u BROWSER xdg-settings set default-web-browser chromium.desktop
 
-if (( first_install )); then
-  mkdir -p "$state_dir/migrations"
-  for migration in "$KESTREL_PATH"/migrations/*.sh; do
-    [[ -f $migration ]] && touch "$state_dir/migrations/$(basename "$migration")"
-  done
+# Zen is the preferred browser; Chromium is the fallback for an older image.
+if [[ -f /usr/share/applications/zen.desktop || -f $HOME/.local/share/applications/zen.desktop ]]; then
+  env -u BROWSER xdg-settings set default-web-browser zen.desktop
+else
+  env -u BROWSER xdg-settings set default-web-browser chromium.desktop
 fi
 
 kestrel-done mark finalize-user

@@ -160,16 +160,6 @@ cmd_defaults() {
   (( $# == 0 )) || fail "defaults does not take arguments"
 
   local optional_widgets="[]"
-  local service widget
-  for service in dropbox tailscale; do
-    if "kestrel-installed-service-$service"; then
-      widget=$(jq -cn \
-        --arg id "kestrel.$service" \
-        --arg section "$(bar_widget_default_section "kestrel.$service")" \
-        '{id: $id, section: $section}')
-      optional_widgets=$(jq -c --argjson widget "$widget" '. + [$widget]' <<<"$optional_widgets")
-    fi
-  done
 
   # This remains one file mutation so it also works during the headless
   # Quattro upgrade and cannot race the shell's in-memory config.
@@ -231,8 +221,8 @@ bar_widget_default_section() {
 }
 
 # Asks the shell to place a widget, waiting out one still coming up. Answers 0
-# with the reply in PUT_RESULT, 1 when there was no shell to ask. Only an
-# absent shell is carried on from: kestrel-migrate marks a 0 return as done.
+# with the reply in PUT_RESULT, 1 when there was no shell to ask. Callers carry
+# on from the 1: a widget cannot be placed with no shell to place it in.
 PUT_RESULT=""
 SHELL_ANSWERED=0
 ask_to_put() {
@@ -287,8 +277,8 @@ cmd_put() {
   placement=$(placement_json)
   ask_to_put "$id" "$placement" || return 0
 
-  # An update runs migrations before it restarts the shell, so this one can
-  # predate the fallback. Ask it again without the neighbour it cannot find.
+  # The running shell can predate the fallback, so it may not know the
+  # neighbour it cannot find. Ask it again without that neighbour.
   if [[ $PUT_RESULT == "could not find target widget"* ]]; then
     PLACEMENT_BEFORE=""
     PLACEMENT_AFTER=""

@@ -11,15 +11,6 @@ if kestrel-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
 fi
 
 focused=$(kestrel-hyprland-monitor-focused)
-terminal=$(xdg-terminal-exec --print-id)
-
-case $terminal in
-*Alacritty* | *foot* | *kitty*) ;;
-*)
-  kestrel-notification-send -g ✋ "Screensaver only runs in Alacritty, Foot, or Kitty"
-  exit 1
-  ;;
-esac
 
 hypr_focus_monitor() {
   hyprctl dispatch "hl.dsp.focus({ monitor = \"$1\" })" >/dev/null 2>&1 || hyprctl dispatch focusmonitor "$1" >/dev/null
@@ -55,17 +46,7 @@ while read -r m special; do
   # Share a special workspace that is already showing, like the scratchpad, so it is still open afterwards.
   workspace=${special:-special:screensaver-$m}
 
-  case $terminal in
-  *Alacritty*)
-    hypr_exec alacritty --class=org.kestrel.screensaver --config-file "$KESTREL_PATH/default/alacritty/screensaver.toml" -e kestrel-screensaver
-    ;;
-  *foot*)
-    hypr_exec foot --app-id=org.kestrel.screensaver --config="$KESTREL_PATH/default/foot/screensaver.ini" -e kestrel-screensaver
-    ;;
-  *kitty*)
-    hypr_exec kitty --class=org.kestrel.screensaver --override font_size=18 --override window_padding_width=0 -e kestrel-screensaver
-    ;;
-  esac
+  hypr_exec foot --app-id=org.kestrel.screensaver --config="$KESTREL_PATH/default/foot/screensaver.ini" -e kestrel-screensaver
 
   wait_for_screensaver_window
 done < <(hyprctl monitors -j | jq -r '.[] | "\(.name) \(.specialWorkspace.name)"')

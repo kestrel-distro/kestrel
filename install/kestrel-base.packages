@@ -39,7 +39,7 @@ fd
 ffmpeg
 ffmpegthumbnailer
 fontconfig
-foot
+foot-kestrel
 fzf
 git
 gnome-disk-utility
@@ -90,6 +90,7 @@ obsidian
 pacman-contrib
 pamixer
 pinta
+playerctl
 plocate
 plymouth
 postgresql-libs

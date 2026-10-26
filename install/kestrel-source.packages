@@ -29,3 +29,5 @@ libkestrel-hint=https://github.com/kestrel-distro/kestrel#packaging/libkestrel-h
 kestrel-broker=https://github.com/kestrel-distro/kestrel#packaging/kestrel-broker
 scx-kestrel=https://github.com/kestrel-distro/scx#packaging/arch
 scx-tools-kestrel=https://github.com/kestrel-distro/scx-loader#packaging/arch
+
+foot-kestrel=https://github.com/kestrel-distro/foot#packaging/arch

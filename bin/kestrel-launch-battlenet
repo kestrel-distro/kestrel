@@ -33,7 +33,7 @@ EOF
 done
 
 if [[ ! -f $LAUNCHER ]]; then
-  echo "Battle.net is not installed. Run kestrel-install-gaming-battlenet first." >&2
+  echo "Battle.net is not installed. Install Battle.net first." >&2
   exit 1
 fi
 

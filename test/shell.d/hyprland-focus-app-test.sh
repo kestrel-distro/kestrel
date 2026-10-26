@@ -33,11 +33,11 @@ pass "app focus follows windows across workspaces"
 
 clients_json='[
   {"address":"0xviber","class":"com.viber.Viber","initialClass":"com.viber.Viber","initialTitle":"Viber"},
-  {"address":"0xagent","class":"org.kestrel.agent","initialClass":"org.kestrel.agent","initialTitle":"kitty"}
+  {"address":"0xagent","class":"org.kestrel.agent","initialClass":"org.kestrel.agent","initialTitle":"foot"}
 ]'
 PATH="$mock_bin:$PATH" KESTREL_TEST_CLIENTS_JSON="$clients_json" \
   KESTREL_TEST_FOCUS_DISPATCH="$dispatch_log" \
-  bash "$ROOT/bin/kestrel-hyprland-focus-app" kitty
+  bash "$ROOT/bin/kestrel-hyprland-focus-app" foot
 
 grep -F 'hl.dsp.focus({ window = "address:0xagent" })' "$dispatch_log" >/dev/null || \
   fail "app focus falls back to the initial window title"

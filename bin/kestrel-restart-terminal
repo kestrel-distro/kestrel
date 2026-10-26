@@ -2,14 +2,6 @@
 
 # kestrel:summary=Reload supported terminal emulators after config changes
 
-if [[ -f ~/.config/alacritty/alacritty.toml ]]; then
-  touch ~/.config/alacritty/alacritty.toml
-fi
-
-if pgrep -x kitty >/dev/null; then
-  killall -SIGUSR1 kitty >/dev/null
-fi
-
 # foot has no config reload, and killing the shared server would close every
 # terminal (including the shell running this). Ask the user to restart it.
 if pgrep -f 'foot --server' >/dev/null; then

@@ -1,0 +1,35 @@
+#!/bin/bash
+# DEV ONLY - remove with kestrel-bench before release.
+# Pick a per-terminal foot rendering worker count from the physical core count.
+# foot spawns `workers` render threads per terminal, so this is deliberately a
+# small per-terminal number, not nproc.
+
+set -euo pipefail
+force=0
+[[ ${1:-} == --force ]] && force=1
+
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini"
+[[ -f $cfg ]] || exit 0
+
+physical=$(lscpu -p=Core,Socket 2>/dev/null | grep -v '^#' | sort -u | wc -l)
+[[ ${physical:-0} -gt 0 ]] || physical=$(nproc 2>/dev/null || echo 1)
+
+workers=$(( physical / 4 ))
+(( workers < 1 )) && workers=1
+(( workers > 4 )) && workers=4
+
+current=$(sed -n 's/^workers=//p' "$cfg" | head -1)
+# Respect an explicit user value; only replace the old Kestrel default (0).
+if [[ -n $current && $force -eq 0 && $current != 0 ]]; then
+  exit 0
+fi
+
+tmp=$(mktemp)
+awk -v w="$workers" '
+  BEGIN { inserted = 0 }
+  /^workers=/ { next }
+  /^\[/ && $0 != "[main]" && inserted == 0 { print "workers=" w; inserted = 1 }
+  { print }
+  END { if (inserted == 0) print "workers=" w }
+' "$cfg" >"$tmp"
+mv "$tmp" "$cfg"

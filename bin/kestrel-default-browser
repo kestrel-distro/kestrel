@@ -39,11 +39,8 @@ zen) browser="zen"; command="zen-browser"; desktop_id="zen.desktop"; name="Zen";
 esac
 
 if kestrel-cmd-missing "$command"; then
-  if [[ $installing == "false" ]]; then
-    exec kestrel-launch-floating-terminal-with-presentation kestrel-default-browser --install "$browser"
-  else
-    kestrel-install-browser "$browser" || exit 1
-  fi
+  echo "$name is not installed" >&2
+  exit 1
 fi
 
 env -u BROWSER xdg-settings set default-web-browser "$desktop_id" || exit 1

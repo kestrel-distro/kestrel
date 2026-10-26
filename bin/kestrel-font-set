@@ -26,20 +26,7 @@ if ! fc-list | grep -Fqi -- "$font_name"; then
   exit 1
 fi
 
-if [[ -f ~/.config/alacritty/alacritty.toml ]]; then
-  sed -i "s/family = \".*\"/family = \"$font_name\"/g" ~/.config/alacritty/alacritty.toml
-fi
 
-if [[ -f ~/.config/kitty/kitty.conf ]] || kestrel-cmd-present kitty; then
-  mkdir -p ~/.config/kitty
-  if grep -qE '^[[:space:]]*font_family[[:space:]]+' ~/.config/kitty/kitty.conf 2>/dev/null; then
-    kitty_font_name=$(printf '%s' "$font_name" | sed 's/[\\&/]/\\&/g')
-    sed --follow-symlinks -i -E "s/^[[:space:]]*font_family[[:space:]]+.*/font_family $kitty_font_name/" ~/.config/kitty/kitty.conf
-  else
-    printf '\nfont_family %s\n' "$font_name" >>~/.config/kitty/kitty.conf
-  fi
-  pkill -USR1 kitty
-fi
 
 if [[ -f ~/.config/foot/foot.ini ]]; then
   sed -i "s/^font=.*/font=$font_name:size=9/g" ~/.config/foot/foot.ini

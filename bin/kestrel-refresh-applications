@@ -6,10 +6,6 @@
 mkdir -p ~/.local/share/applications
 cp "$KESTREL_PATH"/applications/*.desktop ~/.local/share/applications/
 
-if kestrel-cmd-present alacritty; then
-  cp "$KESTREL_PATH/default/alacritty/Alacritty.desktop" ~/.local/share/applications/
-fi
-
 if [[ -f "$KESTREL_PATH/install/user/mise.sh" ]]; then
   bash "$KESTREL_PATH/install/user/mise.sh"
 fi

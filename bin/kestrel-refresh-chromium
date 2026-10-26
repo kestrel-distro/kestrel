@@ -15,11 +15,3 @@ fi
 # Refresh the Chromium configuration
 kestrel-refresh-config chromium-flags.conf
 
-# Install/refresh the native messaging hosts used by the bundled extensions
-kestrel-install-chromium-copy-url
-kestrel-install-chromium-ytdlp
-
-# Re-install Google accounts if previously configured
-if [[ $INSTALL_GOOGLE_ACCOUNTS == "true" ]]; then
-  kestrel-install-chromium-google-account
-fi

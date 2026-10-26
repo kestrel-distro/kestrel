@@ -3,6 +3,6 @@
 -- (org.kestrel.btop, org.kestrel.terminal, TUI.float, ...), so match those too.
 -- The class is matched in full, so foot's other app-id needs spelling out.
 o.window(
-  "(Alacritty|kitty|foot|org\\.codeberg\\.dnkl\\.foot|wezterm|org\\.kestrel\\..*|TUI\\..*)",
+  "(foot|org\\.codeberg\\.dnkl\\.foot|org\\.kestrel\\..*|TUI\\..*)",
   { tag = "+terminal" }
 )

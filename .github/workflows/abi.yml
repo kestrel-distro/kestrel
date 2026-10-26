@@ -31,7 +31,7 @@ jobs:
       - name: Fetch the sibling copies
         run: |
           set -euo pipefail
-          for repo in kernel scx hyprland quickshell docs zen-browser; do
+          for repo in kernel scx hyprland quickshell foot docs zen-browser; do
             git clone --quiet --depth 1 \
               "https://github.com/kestrel-distro/$repo.git" "../$repo"
           done

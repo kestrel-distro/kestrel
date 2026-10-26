@@ -42,7 +42,7 @@ verify_defaults() {
   [[ $(kestrel-default-browser) == "chromium" ]] || fail "Chromium is the default browser"
   pass "Chromium is the default browser"
 
-  [[ $(kestrel-default-terminal) == "foot" ]] || fail "Foot is the default terminal"
+  xdg-terminal-exec --print-id | grep -q "^footclient.desktop" || fail "footclient is the default terminal"
   pass "Foot is the default terminal"
 
   [[ $(kestrel-default-editor) == "nvim" ]] || fail "Neovim is the default editor"

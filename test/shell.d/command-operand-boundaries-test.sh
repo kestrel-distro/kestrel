@@ -155,10 +155,10 @@ STUB
 chmod +x "$mock_bin/pkill" "$mock_bin/setsid"
 
 PATH="$mock_bin:$PATH" KESTREL_TEST_PKILL_CALLS="$pkill_calls" \
-  "$ROOT/bin/kestrel-restart-app" "-9 kitty"
+  "$ROOT/bin/kestrel-restart-app" "-9 foot"
 
 pkill_argv=$(<"$pkill_calls")
-[[ $pkill_argv == $'<-x>\n<-->\n<-9 kitty>' ]] ||
+[[ $pkill_argv == $'<-x>\n<-->\n<-9 foot>' ]] ||
   fail "restart-app treats the application name as one literal pkill pattern" "$pkill_argv"
 pass "restart-app treats the application name as one literal pkill pattern"
 
