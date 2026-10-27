@@ -469,8 +469,6 @@ post_theme_commands=(
   kestrel-restart-opencode
   kestrel-restart-helix
   kestrel-theme-set-foot
-  mkdir -p "$HOME/.config/fastfetch"
-  ln -sfn "$CURRENT_THEME_PATH/fastfetch.jsonc" "$HOME/.config/fastfetch/config.jsonc"
   kestrel-theme-set-tmux
   kestrel-theme-set-hunk
   kestrel-theme-set-gnome
