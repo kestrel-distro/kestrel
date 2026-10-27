@@ -69,7 +69,13 @@ root_is_btrfs_at() {
 # root and no cryptdevice=.
 luks_device() {
   local spec
-  spec=$(grep -o 'cryptdevice=[^ :]*' /proc/cmdline | head -1 | cut -d= -f2-)
+  spec=$(grep -o 'cryptdevice=[^ ]*' /proc/cmdline | head -1 | cut -d= -f2- || true)
+  if [[ -n $spec ]]; then
+    spec=${spec%%:*}
+  else
+    spec=$(grep -o 'rd\.luks\.name=[^ ]*' /proc/cmdline | head -1 | cut -d= -f2- || true)
+    [[ -n $spec ]] && spec="UUID=${spec%%=*}"
+  fi
   case $spec in
     UUID=*) echo "/dev/disk/by-uuid/${spec#UUID=}"; return 0 ;;
     PARTUUID=*) echo "/dev/disk/by-partuuid/${spec#PARTUUID=}"; return 0 ;;
@@ -158,7 +164,7 @@ stage_luks_rekey() {
   chmod 600 "$next/etc/kestrel/provisioning.key"
 
   install -d "$next/etc/limine-entry-tool.d" "$next/etc/mkinitcpio.conf.d"
-  echo 'KERNEL_CMDLINE[default]+=" cryptkey=rootfs:/etc/kestrel/provisioning.key"' \
+  echo "KERNEL_CMDLINE[default]+=\" rd.luks.key=$(cryptsetup luksUUID "$device")=/etc/kestrel/provisioning.key\"" \
     >"$next/etc/limine-entry-tool.d/99-kestrel-provisioning-unlock.conf"
   echo 'FILES+=(/etc/kestrel/provisioning.key)' \
     >"$next/etc/mkinitcpio.conf.d/99-kestrel-provisioning-key.conf"
