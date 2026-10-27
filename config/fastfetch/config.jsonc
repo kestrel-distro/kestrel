@@ -29,7 +29,12 @@
         },
         {
             "type": "title",
-            "keyWidth": 10
+            "keyWidth": 10,
+            "color": {
+                "user": "default",
+                "at": "light_black",
+                "host": "default"
+            }
         },
         {
             "type": "custom",
