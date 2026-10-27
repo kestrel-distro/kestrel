@@ -213,13 +213,12 @@ pass "Grok Bot removal deletes its own data"
 [[ -d $HOME/.grok ]] || fail "Grok Bot removal keeps the Grok CLI's state"
 pass "Grok Bot removal keeps the Grok CLI's state"
 
-# Every acceleration variant depends on the base package, so package presence is
-# the test the remover can actually act on; the command alone is also provided by
-# builds kestrel-pkg-drop will not touch.
-ollama_row=$(grep '^  "remove.ai.ollama":' "$ROOT/default/kestrel/kestrel-menu.jsonc")
-[[ $ollama_row == *'"when":"kestrel-pkg-present ollama"'* ]] ||
-  fail "Ollama removal is offered only where the package is installed" "$ollama_row"
-pass "Ollama removal is offered only where the package is installed"
+# The removal commands still exist for anything already installed, but the
+# launch menu no longer offers AI or agent entries.
+if grep -qE '^  "(remove\.ai|setup\.default\.agent)' "$ROOT/default/kestrel/kestrel-menu.jsonc"; then
+  fail "the launch menu has no AI or agent entries"
+fi
+pass "the launch menu has no AI or agent entries"
 
 # OpenClaw's gateway unit and web app launcher are the app's own; the agent
 # state in ~/.openclaw is the user's. systemctl and openclaw are stubbed so the
