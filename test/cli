@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+. "$ROOT/test/vm-guard"
 CLI="$ROOT/bin/kestrel"
 TMPDIRS=()
 

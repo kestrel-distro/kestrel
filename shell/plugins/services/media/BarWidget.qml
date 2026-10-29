@@ -66,7 +66,7 @@ BarWidget {
 
         NumberAnimation on x {
           id: scrollAnim
-          running: labelText.needsScroll && !root.popupOpen && !root.bar.vertical && !Style.reduceMotion
+          running: labelText.needsScroll && !root.popupOpen && !root.bar.vertical && !Style.reduceMotion && !root.bar.barHidden && hoverArea.containsMouse
           // Stopped for reduced motion, the title reads from its start again.
           onRunningChanged: if (!running && Style.reduceMotion) labelText.x = 0
           loops: Animation.Infinite
@@ -80,6 +80,7 @@ BarWidget {
   }
 
   MouseArea {
+    id: hoverArea
     anchors.fill: parent
     hoverEnabled: true
     cursorShape: root.activePlayer ? Qt.PointingHandCursor : Qt.ArrowCursor

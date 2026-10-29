@@ -121,10 +121,10 @@ Item {
 
   // -------------------------------------------------------------- refresh
 
-  property int refreshIntervalSec: Math.max(30, Number(setting("refreshIntervalSec", 900)))
+  property int refreshIntervalSec: Math.max(30, Number(setting("refreshIntervalSec", 3600)))
   property string pendingUpdateKind: ""
 
-  // A fifteen-minute interval can't catch an account crossing its switch
+  // An hourly interval can't catch an account crossing its switch
   // threshold, so while any provider with several accounts has its active one
   // within 15 points of that threshold (80% at the default 95%), the limits
   // are checked every three minutes. Those runs

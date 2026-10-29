@@ -10,18 +10,6 @@ hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 hl.env("XCURSOR_THEME", "Adwaita")
 
--- VM display stacks (virtio-gpu) often never present the hardware cursor plane,
--- which leaves the pointer invisible even though the theme is loaded. Composite
--- it in the compositor on virtual machines only.
-do
-  local probe = io.popen("systemd-detect-virt --vm 2>/dev/null")
-  local virt = probe and probe:read("*l") or nil
-  if probe then probe:close() end
-  if virt and virt ~= "" and virt ~= "none" then
-    hl.config({ cursor = { no_hardware_cursors = true } })
-  end
-end
-
 -- Force all apps to use Wayland.
 hl.env("GDK_BACKEND", "wayland,x11,*")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")

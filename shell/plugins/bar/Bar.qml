@@ -1170,7 +1170,7 @@ Item {
   }
 
   Timer {
-    interval: 100
+    interval: 250
     running: root.tooltipShown
     repeat: true
     onTriggered: if (!root.targetTooltipHovered(root.tooltipTarget)) root.hideTooltip(root.tooltipTarget)
@@ -1278,7 +1278,7 @@ Item {
     implicitWidth: root.vertical ? root.barSize : 0
     implicitHeight: root.vertical ? 0 : root.barSize
     color: root.transparent ? "transparent" : root.background
-    surfaceFormat.opaque: false
+    surfaceFormat.opaque: !root.transparent && root.background.a >= 1
     WlrLayershell.namespace: "kestrel-bar"
     WlrLayershell.layer: WlrLayer.Top
 
@@ -2089,7 +2089,7 @@ Item {
 
     Process {
       id: customProc
-      command: ["bash", "-lc", String(customRoot.setting("exec", ""))]
+      command: ["bash", "-c", String(customRoot.setting("exec", ""))]
       stdout: StdioCollector {
         waitForEnd: true
         onStreamFinished: customRoot.update(text)
@@ -2097,7 +2097,7 @@ Item {
     }
 
     Timer {
-      interval: Math.max(1, Number(customRoot.setting("interval", 5))) * 1000
+      interval: Math.max(1, Number(customRoot.setting("interval", 10))) * 1000
       running: String(customRoot.setting("exec", "")) !== ""
       repeat: true
       triggeredOnStart: true

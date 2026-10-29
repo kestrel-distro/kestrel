@@ -23,6 +23,7 @@
 set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+. "$ROOT/test/vm-guard"
 
 log="${KESTREL_VM_LOG:-/tmp/kestrel-vm-tests-$(date +%Y%m%d-%H%M%S).log}"
 

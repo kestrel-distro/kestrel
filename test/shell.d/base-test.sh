@@ -10,6 +10,8 @@ SHELL_TEST_DIR="$ROOT/test/shell.d"
 
 export ROOT
 
+. "$ROOT/test/vm-guard"
+
 pass() {
   printf 'ok - %s\n' "$1"
 }

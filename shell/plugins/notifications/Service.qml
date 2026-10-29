@@ -1068,12 +1068,12 @@ Item {
             onImageChanged: cardSlot.remainingLifetime = 1.0
 
             Timer {
-              interval: 50
+              interval: 250
               repeat: true
               running: cardSlot.ticking
               onTriggered: {
                 if (cardSlot.lifetime <= 0) return
-                cardSlot.remainingLifetime -= 50.0 / cardSlot.lifetime
+                cardSlot.remainingLifetime -= 250.0 / cardSlot.lifetime
                 if (cardSlot.remainingLifetime <= 0) {
                   cardSlot.remainingLifetime = 0
                   service.expirePopup(cardSlot.index)

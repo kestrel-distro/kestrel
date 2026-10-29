@@ -4,7 +4,7 @@
 # kestrel:args=[up|down|SCALE]
 # kestrel:examples=kestrel hyprland monitor scaling | kestrel hyprland monitor scaling 1.6 | kestrel hyprland monitor scaling up | kestrel hyprland monitor scaling down
 
-SCALES=(1 1.25 1.6 2 3 4)
+SCALES=(1 2 3 4)
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/kestrel"
 SCALE_LOG="$STATE_DIR/monitor-scaling.log"
 

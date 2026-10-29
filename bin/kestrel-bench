@@ -1,6 +1,6 @@
 #!/bin/bash
-# DEV ONLY - remove before release. One-command kernel-bridge check and
-# bpfland-vs-scx_kestrel A/B for the VM/installed system.
+# DEV ONLY - remove before release. One-command kernel-bridge check and the
+# scheduler x cgroups x hints matrix for the VM/installed system.
 
 set -euo pipefail
 
@@ -175,26 +175,30 @@ fi
 
 say "bench"
 bench="/usr/share/kestrel-bench/bench"
-[[ -x $bench/scx ]] || bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
-if [[ ! -x $bench/scx ]]; then
+[[ -x $bench/matrix ]] || bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
+if [[ ! -x $bench/matrix ]]; then
   mkdir -p "$HOME/.cache/kestrel/bench-src"
-  echo "bench: fetching the harness (no $bench/scx)"
+  echo "bench: fetching the harness (no $bench/matrix)"
   git clone --depth 1 https://github.com/kestrel-distro/kernel \
     "$HOME/.cache/kestrel/bench-src/kernel" || true
   bench="$HOME/.cache/kestrel/bench-src/kernel/bench"
 fi
 
-if [[ -x $bench/scx ]]; then
+if [[ -x $bench/matrix ]]; then
   cp -a "$bench" "$out/bench-harness"
   cd "$out/bench-harness"
-  for run in 1 2 3; do
-    say "bench run$run: bpfland -> kestrel"
-    KESTREL_SCX_AB="scx_bpfland: scx_kestrel:" \
-    KESTREL_BENCH_MODE=session \
-    KESTREL_BENCH_SESSION_SECONDS=30 \
-    KESTREL_SCX_SETTLE=10 \
-    ./scx "run$run" || echo "bench run$run failed"
-  done
+  # Interleaved factor matrix: scheduler x cgroups x hints, N repeats each.
+  say "bridge matrix"
+  KESTREL_MATRIX_REPS="${KESTREL_BENCH_REPS:-5}" \
+  KESTREL_MATRIX_MODE="${KESTREL_BENCH_MODE:-session}" \
+  KESTREL_MATRIX_SESSION_SECONDS="${KESTREL_BENCH_SESSION_SECONDS:-30}" \
+  KESTREL_MATRIX_BG_CPUS="${KESTREL_BENCH_BG_CPUS:-0}" \
+    ./matrix vm || echo "matrix failed"
+  start=$(ls -1d results/*-matrix-* 2>/dev/null | head -1) || true
+  if [[ -n ${start:-} ]]; then
+    say "matrix compare"
+    ./compare "$start"/* | tee "$out/matrix-compare.txt" || true
+  fi
   ls -1 results | tail -20 || true
 else
   echo "bench: skipped, harness unavailable (offline?)"

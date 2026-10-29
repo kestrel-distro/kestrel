@@ -6,6 +6,7 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 fi
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+. "$ROOT/test/vm-guard"
 ARTIFACTS="${KESTREL_ACCEPTANCE_DIR:-/tmp/kestrel-acceptance}"
 
 mkdir -p "$ARTIFACTS"

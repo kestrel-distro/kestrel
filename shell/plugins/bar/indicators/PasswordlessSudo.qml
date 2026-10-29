@@ -37,13 +37,6 @@ BarIndicator {
     function onRefreshRequested() { root.refresh() }
   }
 
-  Timer {
-    interval: 5000
-    repeat: true
-    running: !!root.bar
-    onTriggered: root.refresh()
-  }
-
   Process {
     id: statusProc
     command: ["kestrel-sudo-passwordless", "--active"]

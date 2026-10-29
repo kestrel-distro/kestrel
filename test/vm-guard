@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Hard lock: these suites launch compositors, write under /etc and assume a
+# real Kestrel session. They must run inside the Kestrel VM, never on the
+# build host. There is deliberately no host override.
+if ! systemd-detect-virt --vm --quiet 2>/dev/null; then
+  vm="$(systemd-detect-virt 2>/dev/null || true)"
+  printf 'refusing to run Kestrel tests outside a VM (%s)\n' "${vm:-unknown}" >&2
+  printf 'boot the Kestrel VM and run test/vm from the host\n' >&2
+  exit 1
+fi

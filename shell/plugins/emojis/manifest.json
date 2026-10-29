@@ -8,7 +8,7 @@
   "kinds": [
     "overlay"
   ],
-  "keepLoaded": true,
+  "keepLoaded": false,
   "entryPoints": {
     "overlay": "Emojis.qml"
   }

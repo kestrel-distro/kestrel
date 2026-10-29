@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+. "$ROOT/test/vm-guard"
 BROKER="$ROOT/bin/kestrel-broker"
 TMP=$(mktemp -d)
 HYPR_FILE="$TMP/hypr"

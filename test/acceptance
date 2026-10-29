@@ -10,6 +10,7 @@
 set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+. "$ROOT/test/vm-guard"
 TEST_DIR="$ROOT/test/acceptance.d"
 
 export KESTREL_ACCEPTANCE_DIR="${KESTREL_ACCEPTANCE_DIR:-/tmp/kestrel-acceptance}"

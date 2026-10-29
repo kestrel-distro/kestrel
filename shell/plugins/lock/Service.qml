@@ -60,6 +60,8 @@ Item {
   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
   readonly property var batteryService: shell && shell.services ? shell.firstPartyServiceFor("kestrel.battery") : null
   readonly property bool powerSaverActive: batteryService ? batteryService.powerSaverOnBattery : false
+  readonly property var idleService: shell && shell.services ? shell.firstPartyServiceFor("kestrel.idle") : null
+  readonly property bool preloadLockWallpaper: locked || (idleService && idleService.idledThisCycle)
   // A prompt clears the unavailable notice before the attempt finishes.
   readonly property bool fingerprintUnavailable: FingerprintModel.isUnavailable(fingerprintProbeStreak) || (fingerprintConfigured && (!fingerprintAttemptReachedDevice || fingerprintAttemptFastError) && FingerprintModel.isUnavailable(fingerprintUnreachedStreak))
 
@@ -585,7 +587,7 @@ Item {
     Image {
       required property var modelData
       visible: false
-      source: root.lockWallpaperUrl
+      source: root.preloadLockWallpaper ? root.lockWallpaperUrl : ""
       sourceSize.width: modelData.width
       sourceSize.height: modelData.height
       fillMode: Image.PreserveAspectCrop

@@ -263,6 +263,5 @@ Item {
 
   Component.onCompleted: {
     hiddenEntryScan.running = true
-    iconIndexScan.running = true
   }
 }

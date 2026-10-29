@@ -17,7 +17,7 @@
 run_shell() {
   local startup_background
   startup_background=$(readlink -f "$HOME/.local/state/kestrel/current/background" 2>/dev/null)
-  KESTREL_STARTUP_BACKGROUND="$startup_background" QS_DISABLE_FILE_WATCHER=1 QS_NO_RELOAD_POPUP=1 \
+  KESTREL_STARTUP_BACKGROUND="$startup_background" QS_DISABLE_FILE_WATCHER=1 QS_NO_RELOAD_POPUP=1 QSG_NO_DEPTH_BUFFER=1 \
     systemd-cat -t kestrel-shell -- quickshell -n -p "$KESTREL_PATH/shell" &
   shell_pid=$!
 

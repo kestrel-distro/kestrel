@@ -62,7 +62,7 @@ recover_modeless() {
 
 poll_clamshell_state() {
   while true; do
-    sleep 2
+    sleep 5
     sync_clamshell
   done
 }

@@ -74,7 +74,7 @@ Item {
   }
 
   function saveHistory() {
-    historyFile.setText(JSON.stringify(root.history.slice(0, root.historyLimit), null, 2) + "\n")
+    historyFile.setText(JSON.stringify(root.history.slice(0, root.historyLimit)) + "\n")
   }
 
   function addClipboardEntry(entry) {

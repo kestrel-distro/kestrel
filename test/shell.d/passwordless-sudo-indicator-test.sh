@@ -17,7 +17,7 @@ assert(!widget.includes('sudoHorizontal') && !widget.includes('sudoVertical'), '
 assert(!indicator.includes('visible:'), 'sudo uses the shared indicator visibility and hover behavior')
 assert(indicator.includes('command: ["kestrel-sudo-passwordless", "--active"]'), 'indicator uses the noninteractive grant probe')
 assert(indicator.includes('root.granted = exitCode === 0 && exitStatus === 0'), 'failed or interrupted probes do not claim an active grant')
-assert(indicator.includes('interval: 5000') && indicator.includes('onTriggered: root.refresh()'), 'indicator refreshes after activation, revocation, and expiry')
+assert(indicator.includes('onRefreshRequested') && indicator.includes('onBarChanged: refresh()') && indicator.includes('Component.onCompleted: refresh()'), 'indicator refreshes on host request, bar attach, and completion')
 assert(indicator.includes('command: ["kestrel-sudo-passwordless", "--disable"]'), 'active indicator revokes access through a background process')
 assert(indicator.includes('if (root.granted) disableProc.running = true'), 'active click bypasses the terminal launcher')
 assert(indicator.includes('root.indicatorHost.refresh()'), 'disabling access refreshes all indicator instances immediately')

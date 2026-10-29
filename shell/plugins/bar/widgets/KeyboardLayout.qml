@@ -222,7 +222,7 @@ BarWidget {
   // one-keyboard install has none of those, and is left alone rather than
   // spawning hyprctl forever for an answer that cannot change.
   Timer {
-    interval: 10000
+    interval: 60000
     running: !root.keyboardName || root.keyboardUnresolved || root.keyboardCount > 1
     repeat: true
     onTriggered: root.refresh()

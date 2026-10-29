@@ -181,8 +181,11 @@ event_loop() {
   socat -U - "UNIX-CONNECT:$sock" 2>/dev/null |
     while IFS= read -r line; do
       case "${line%%>>*}" in
-        activewindow | openwindow | closewindow | movewindow | fullscreen | workspace)
+        activewindow | openwindow | closewindow)
           place
+          maybe_reclaim
+          ;;
+        movewindow | fullscreen | workspace)
           maybe_reclaim
           ;;
       esac

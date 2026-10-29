@@ -631,7 +631,7 @@ Panel {
   // volume too, so an unresolved sink there would read and change the virtual
   // tuning sink instead of the speakers.
   Timer {
-    interval: 15000
+    interval: 60000
     running: true
     repeat: true
     triggeredOnStart: true

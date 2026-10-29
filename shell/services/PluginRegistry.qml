@@ -674,6 +674,7 @@ QtObject {
     ]
     stdout: SplitParser {
       onRead: function(path) {
+        if (/\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp4|webm|md|txt|log)$/i.test(path)) return
         var pluginId = registry.localPluginIdForPath(path)
         if (pluginId) registry.localPluginChanged(pluginId)
       }

@@ -58,7 +58,6 @@ Item {
   }
 
   function prepareTheme(fromPath, token, colors, shell) {
-    framePoll.stop()
     themeFade.stop()
     themeToken = token
     transitionToken = token
@@ -74,7 +73,6 @@ Item {
 
   function revealTheme() {
     if (!themeToken && !cover) return
-    framePoll.stop()
     themeFallback.stop()
     if (themeToken) {
       Commons.Color.loadColors(Util.decodeBase64(themeColors))
@@ -114,7 +112,6 @@ Item {
   }
 
   function cancelTheme() {
-    framePoll.stop()
     themeFallback.stop()
     themeFade.stop()
     themeToken = ""
@@ -164,32 +161,6 @@ Item {
 
   // A renderer left over from another intro can first fade from its still.
   // Keep that preparation hidden until the actual video is fully revealed.
-  Timer {
-    id: framePoll
-    interval: 16
-    repeat: true
-    onTriggered: if (!frameStatus.running) frameStatus.running = true
-  }
-
-  Process {
-    id: frameStatus
-    // Kestrel has no video wallpaper engine, so there is never a renderer to
-    // poll. Keep the process as an inert no-op so the intro plumbing stays
-    // harmless until it is removed with the shell in a later milestone.
-    command: ["/bin/true"]
-    property string token: ""
-    onStarted: token = root.themeToken
-    stdout: StdioCollector { id: frameStatusOut }
-    onExited: function(exitCode) {
-      if (exitCode !== 0 || token !== root.themeToken || (!token && !root.cover)) return
-      try {
-        var status = JSON.parse(frameStatusOut.text)
-        if (status.kind === "video" && status.ready && !status.has_transition && status.time_pos > 0)
-          root.revealTheme()
-      } catch (e) {}
-    }
-  }
-
   // A shell restart shares this compositor session; a new login does not.
   FileView {
     id: sessionMarker
@@ -214,15 +185,6 @@ Item {
     checked = true
     if (!startupBackgroundPath && !startupPending) startupBackground.running = true
     introProc.running = true
-  }
-
-  onBackgroundActiveChanged: {
-    if (!backgroundActive && checked) {
-      if (cover || themeToken) {
-        framePoll.start()
-        if (!frameStatus.running) frameStatus.running = true
-      }
-    }
   }
 
   // Cover the bar as well as the wallpaper on a new login. Shell restarts
