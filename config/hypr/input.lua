@@ -14,7 +14,7 @@ hl.config({
     scroll_factor = 3,
 
     accel_profile = "flat",
-    sensitivity = 1.5,
+    sensitivity = 1.0,
 
     touchpad = {
       natural_scroll = true,
