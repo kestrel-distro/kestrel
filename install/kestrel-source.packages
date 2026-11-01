@@ -7,16 +7,10 @@
 trustsight=https://github.com/emiliano-go/trustsight
 linux-kestrel=https://github.com/kestrel-distro/kernel
 
-# Lean desktop builds. Distinct package names that conflict with the Arch
-# packages, so Arch cannot overwrite them; they are served by the Kestrel
-# [kestrel] repository after install.
-hyprland-kestrel=https://github.com/kestrel-distro/hyprland
-quickshell-kestrel=https://github.com/kestrel-distro/quickshell
-
 # Matched desktop library closure (E2) and the explicit-sync qtbase (E4,
 # the Wayland client lives in qtbase since Qt 6.12), all from
 # kestrel-distro/desktop. Format name=url#subdir: the builder looks for the
-# PKGBUILD in the cloned repo at subdir.
+# PKGBUILD in the cloned repo at subdir. These build before their consumers.
 hyprutils-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprutils
 hyprlang-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprlang
 hyprgraphics-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprgraphics
@@ -24,6 +18,12 @@ hyprcursor-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprcurso
 hyprwire-kestrel=https://github.com/kestrel-distro/desktop#packaging/hyprwire
 aquamarine-kestrel=https://github.com/kestrel-distro/desktop#packaging/aquamarine
 qt6-base-kestrel=https://github.com/kestrel-distro/desktop#packaging/qt6-base
+
+# Lean desktop builds. Distinct package names that conflict with the Arch
+# packages, so Arch cannot overwrite them; they are served by the Kestrel
+# [kestrel] repository after install.
+hyprland-kestrel=https://github.com/kestrel-distro/hyprland
+quickshell-kestrel=https://github.com/kestrel-distro/quickshell
 
 libkestrel-hint=https://github.com/kestrel-distro/kestrel#packaging/libkestrel-hint
 kestrel-broker=https://github.com/kestrel-distro/kestrel#packaging/kestrel-broker
