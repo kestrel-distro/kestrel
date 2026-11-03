@@ -102,12 +102,12 @@ move_tree() {
 }
 
 # footclient processes are separate from the foot server, so the focused
-# window's PID does not lead to them. Keep the client proxies in the terminal
-# class as well.
+# window's PID does not lead to them. Keep both the server and client proxies
+# in the terminal class, including when the benchmark starts them unfocused.
 move_footclients() {
   local p term
   term="$(class_dir term)"
-  for p in $(pgrep -x footclient 2>/dev/null); do
+  for p in $(pgrep -x foot 2>/dev/null) $(pgrep -x footclient 2>/dev/null); do
     move_pid "$p" "$term"
   done
 }
