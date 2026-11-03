@@ -6,7 +6,7 @@
 # kestrel:examples=kestrel scx | kestrel scx list | kestrel scx switch scx_lavd Gaming
 
 # Thin wrapper over scxctl, the D-Bus client for scx_loader. The loader starts
-# the configured default (scx_bpfland, see /etc/scx_loader/config.toml) on boot
+# the configured default (scx_kestrel, see /etc/scx_loader/config.toml) on boot
 # and does the actual scheduler loading; this command only drives it. Mutating
 # actions need root (or a polkit agent); scxctl talks to org.scx.Loader.
 

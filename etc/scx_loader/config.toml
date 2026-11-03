@@ -3,16 +3,15 @@
 # which wraps scxctl). Lookup order puts this file first, so it overrides any
 # template shipped by scx-tools-kestrel at /usr/share/scx_loader/config.toml.
 #
-# bpfland is a vruntime scheduler that prioritizes interactive workloads, which
-# is what a Hyprland desktop is. "Auto" leaves the per-scheduler tuning at the
-# loader's defaults; use `kestrel scx switch <name> <mode>` to change at runtime.
-default_sched = "scx_bpfland"
+# Kestrel's hint-aware scheduler is the default. "Auto" leaves the per-scheduler
+# tuning at the loader's defaults; use `kestrel scx switch <name> <mode>` to
+# change at runtime. bpfland stays available as the fallback.
+default_sched = "scx_kestrel"
 default_mode = "Auto"
 
 # scx_kestrel takes its layer set as an argument. The scx-kestrel package
 # installs the baked config; every mode passes the same file because the
-# scheduler has no built-in layer set of its own. The default stays bpfland
-# until the bench session shows a win.
+# scheduler has no built-in layer set of its own.
 [scheds.scx_kestrel]
 auto_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]
 gaming_mode = ["f:/usr/share/scx_kestrel/kestrel-layers.json"]

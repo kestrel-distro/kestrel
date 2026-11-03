@@ -18,6 +18,14 @@
 
 set -euo pipefail
 
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} && -n ${XDG_RUNTIME_DIR:-} ]]; then
+  for d in "$XDG_RUNTIME_DIR"/hypr/*; do
+    [[ -d $d ]] || continue
+    export HYPRLAND_INSTANCE_SIGNATURE=${d##*/}
+    break
+  done
+fi
+
 default_class_root() {
   # User slices live under the user manager's delegated subtree, not at the
   # cgroup root: /sys/fs/cgroup/user.slice/user-<uid>.slice/user@<uid>.service.
