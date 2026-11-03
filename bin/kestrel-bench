@@ -36,7 +36,7 @@ trap 'mem_peak_stop >/dev/null 2>&1 || true; as_root scxctl restore >/dev/null 2
 # Peak PSS for the apps Kestrel ships, so their footprint can be tuned from a
 # bench run instead of ad-hoc ps calls.
 mem_apps=(Hyprland quickshell foot footclient kestrel-broker kestrel-shell
-          Xwayland uwsm hypridle xdg-desktop-por zen chromium nautilus)
+          Xwayland uwsm hypridle xdg-desktop-por zen-browser chromium nautilus)
 
 proc_pss() {
   awk '/^Pss:/{s+=$2} END{print s+0}' "/proc/$1/smaps_rollup" 2>/dev/null || echo 0
@@ -154,7 +154,7 @@ pgrep -x footclient >/dev/null && echo "footclient: $(pgrep -x footclient | tr '
 pgrep -x Hyprland >/dev/null && kestrel-hint get "$(pgrep -x Hyprland)" || true
 
 say "app hints"
-for name in Hyprland quickshell foot zen; do
+for name in Hyprland quickshell foot zen-browser; do
   # pipefail: pgrep exits 1 for a name that is not running (e.g. zen), which
   # would otherwise fail the assignment and take the whole bench with it.
   pid=$(pgrep -x "$name" 2>/dev/null | head -1) || true

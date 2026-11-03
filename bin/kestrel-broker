@@ -112,6 +112,15 @@ move_footclients() {
   done
 }
 
+# The shell has no focused window to classify, so place it explicitly.
+move_shell() {
+  local p desktop
+  desktop="$(class_dir desktop)"
+  for p in $(pgrep -x quickshell 2>/dev/null) $(pgrep -x kestrel-shell 2>/dev/null); do
+    move_pid "$p" "$desktop"
+  done
+}
+
 # The focused window's pid and class, tab-separated.
 focused() {
   hyprctl -j activewindow 2>/dev/null |
@@ -125,7 +134,9 @@ setup() {
   done
   # The browser class splits into an active bucket (boosted) and a background
   # bucket (soft-capped, reclaimed). Both are plain child cgroups under the
-  # systemd slice; the broker owns their dynamic limits.
+  # systemd slice; enable the controllers in the slice's subtree first, or the
+  # child cgroups get no cpu.weight/memory.high files to write.
+  printf '+cpu +memory' >"$(class_dir browser)/cgroup.subtree_control" 2>/dev/null || true
   ensure_dir "$(class_dir browser)/active" || true
   ensure_dir "$(class_dir browser)/background" || true
   printf '1000' >"$(class_dir browser)/active/cpu.weight" 2>/dev/null || true
@@ -151,6 +162,7 @@ place() {
     esac
   fi
   move_footclients
+  move_shell
   PLACED_PID="$pid"
   PLACED_CLASS="$kclass"
 }
