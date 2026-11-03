@@ -30,8 +30,9 @@ adds a per-task hint path:
   `scx_bpf_task_hint()` and applies its baked layer set, selectable through
   `scx_loader`/`scxctl`.
 
-`scx_bpfland` remains the default in the live session; `kestrel-bench` runs the
-A/B that decides whether `scx_kestrel` replaces it.
+`scx_kestrel` is the default in the live session; `scx_bpfland` remains
+available as the fallback. `kestrel-bench` still runs the A/B so a future
+change has to earn its place.
 
 ## What is in the box
 
@@ -81,8 +82,8 @@ snapshot in Limine and run `kestrel-snapshot restore`.
 ## Measuring
 
 Run `kestrel-bench` inside the VM. It checks `kestrel-hint supported`, exercises
-set/get, verifies the broker and foot placement, runs a 3× `scx_bpfland` vs
-`scx_kestrel` A/B, measures the foot worker matrix, and samples peak PSS for
+set/get, verifies the broker and foot placement, runs a 3× scheduler A/B,
+measures the foot worker matrix, and samples peak PSS for
 Hyprland, Quickshell, foot, footclient and the other shipped processes. Results
 land under `~/.cache/kestrel/vm-logs/bench-*` on the host.
 
