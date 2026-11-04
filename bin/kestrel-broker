@@ -149,6 +149,9 @@ setup() {
   printf '+cpu +memory' >"$(class_dir browser)/cgroup.subtree_control" 2>/dev/null || true
   ensure_dir "$(class_dir browser)/active" || true
   ensure_dir "$(class_dir browser)/background" || true
+  # These weights are the EEVDF fallback policy. Under scx_kestrel the BPF
+  # layer weights in kestrel-layers.json are authoritative; the scheduler has
+  # no cgroup_set_weight callback yet.
   printf '1000' >"$(class_dir browser)/active/cpu.weight" 2>/dev/null || true
   printf '100' >"$(class_dir browser)/background/cpu.weight" 2>/dev/null || true
   printf '%s' "$BG_MEMORY_HIGH" >"$(class_dir browser)/background/memory.high" 2>/dev/null || true
