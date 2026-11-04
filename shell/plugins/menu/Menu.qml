@@ -75,7 +75,6 @@ Item {
   property var providersLoaded: ({})
   property var providerQueue: []
   property int providerRevision: 0
-  property double lastIconRefreshMs: 0
 
   // Shared application engine (entries, hidden filters, icons, launch,
   // removal), owned by the shell and also used by the standalone launcher.
@@ -857,14 +856,8 @@ Item {
     invalidateVolatileProvider(activeMenu)
     loadProviderForMenu(activeMenu)
     // The shell may start before first-install packages have finished placing
-    // their icons. Refresh at most once a minute; the app-list watcher already
-    // rescans on package changes, and a full icon-tree walk on every open costs
-    // CPU and retains decoded icon state.
-    var nowMs = Date.now()
-    if (root.appLibrary && nowMs - root.lastIconRefreshMs > 60000) {
-      root.lastIconRefreshMs = nowMs
-      root.appLibrary.refreshIcons()
-    }
+    // their icons. Refresh here even when the desktop entry list did not change.
+    if (root.appLibrary) root.appLibrary.refreshIcons()
 
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
@@ -1321,7 +1314,6 @@ Item {
                 sourceSize.height: height * Screen.devicePixelRatio
                 source: row.isApp && root.appLibrary ? root.appLibrary.iconSource(row.appIcon) : ""
                 asynchronous: true
-                cache: false
                 anchors.left: parent.left
                 anchors.leftMargin: root.rowReservedBorderLeft + Style.space(8) + (Style.space(36) - width) / 2
                 y: contentColumn.y + labelText.y + (labelText.height - height) / 2
