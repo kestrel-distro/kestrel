@@ -34,9 +34,6 @@ Item {
 
   function close() {
     root.cancel()
-    // Menu construction is the shell's largest transient allocation. Return
-    // freed heap pages to the kernel once the menu is gone.
-    if (typeof KestrelMemory !== "undefined") KestrelMemory.trim()
   }
 
   function refresh() {
