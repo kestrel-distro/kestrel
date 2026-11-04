@@ -54,6 +54,8 @@ classify() {
   case "${1,,}" in
     *foot*) echo term ;;
     *zen* | *firefox*) echo browser ;;
+    *pipewire* | *wireplumber* | *pw-* | *jack* | *easyeffects*) echo audio ;;
+    *gamescope* | *steam* | *proton* | *wine* | *lutris* | *heroic*) echo game ;;
     *) echo "" ;;
   esac
 }
@@ -104,6 +106,14 @@ move_tree() {
 # footclient processes are separate from the foot server, so the focused
 # window's PID does not lead to them. Keep both the server and client proxies
 # in the terminal class, including when the benchmark starts them unfocused.
+move_audio() {
+  local p audio
+  audio="$(class_dir audio)"
+  for p in $(pgrep -x pipewire 2>/dev/null) $(pgrep -x wireplumber 2>/dev/null)            $(pgrep -x pipewire-pulse 2>/dev/null); do
+    move_pid "$p" "$audio"
+  done
+}
+
 move_footclients() {
   local p term
   term="$(class_dir term)"
@@ -129,7 +139,7 @@ focused() {
 
 setup() {
   local c
-  for c in desktop term browser game background; do
+  for c in desktop audio term browser game background; do
     ensure_dir "$(class_dir "$c")" || true
   done
   # The browser class splits into an active bucket (boosted) and a background
@@ -142,6 +152,21 @@ setup() {
   printf '1000' >"$(class_dir browser)/active/cpu.weight" 2>/dev/null || true
   printf '100' >"$(class_dir browser)/background/cpu.weight" 2>/dev/null || true
   printf '%s' "$BG_MEMORY_HIGH" >"$(class_dir browser)/background/memory.high" 2>/dev/null || true
+  # UCLAMP is applied by the sched_ext class's rq aggregation and feeds
+  # schedutil. Keep the values conservative; placement is still scx_kestrel's.
+  set_uclamp_dir "$(class_dir desktop)" 50.00 100.00
+  set_uclamp_dir "$(class_dir audio)" 60.00 100.00
+  set_uclamp_dir "$(class_dir term)" 30.00 100.00
+  set_uclamp_dir "$(class_dir browser)/active" 20.00 100.00
+  set_uclamp_dir "$(class_dir browser)/background" 0.00 50.00
+  set_uclamp_dir "$(class_dir game)" 60.00 100.00
+}
+
+set_uclamp_dir() {
+  local dir="$1" min="$2" max="$3"
+  [[ -e $dir/cpu.uclamp.min && -e $dir/cpu.uclamp.max ]] || return 0
+  printf '%s' "$min" >"$dir/cpu.uclamp.min" 2>/dev/null || true
+  printf '%s' "$max" >"$dir/cpu.uclamp.max" 2>/dev/null || true
 }
 
 place() {
@@ -158,9 +183,11 @@ place() {
     case "$kclass" in
       browser) move_tree "$pid" "$(class_dir browser)/active" ;;
       term) move_tree "$pid" "$(class_dir term)" ;;
+      game) move_tree "$pid" "$(class_dir game)" ;;
       *) move_pid "$pid" "$(class_dir "$kclass")" ;;
     esac
   fi
+  move_audio
   move_footclients
   move_shell
   PLACED_PID="$pid"

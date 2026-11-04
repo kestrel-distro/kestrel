@@ -14,6 +14,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/systemctl --user start \
   kestrel-desktop.slice \
+  kestrel-audio.slice \
   kestrel-term.slice \
   kestrel-browser.slice \
   kestrel-game.slice \
