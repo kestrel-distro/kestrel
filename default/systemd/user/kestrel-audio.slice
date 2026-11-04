@@ -1,0 +1,13 @@
+# Kestrel class: audio servers and their processing threads.
+#
+# PipeWire/WirePlumber/Jack get their own class so a compile or browser tab
+# cannot starve audio at the same weight as ordinary interactive work. The
+# scheduler layer also sets a short slice and preemption; UCLAMP provides a
+# frequency floor through schedutil.
+
+[Unit]
+Description=Kestrel class: audio servers
+
+[Slice]
+CPUWeight=900
+IOWeight=300
