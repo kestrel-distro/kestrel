@@ -183,7 +183,7 @@ place() {
     move_tree "$PLACED_PID" "$(class_dir browser)/background"
     # Demotion is the safe point to reclaim: the tabs are no longer focused.
     # Keep a bounded budget so a huge browser does not stall the compositor.
-    printf '%s' "${KESTREL_BROKER_RECLAIM_ON_BACKGROUND:-768M}" \
+    printf '%s' "${KESTREL_BROKER_RECLAIM_ON_BACKGROUND:-256M}" \
       >"$(class_dir browser)/background/memory.reclaim" 2>/dev/null || true
   fi
   if [[ -n $kclass ]]; then
