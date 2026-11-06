@@ -46,7 +46,7 @@
         "Status": "default"
       },
       "dom.ipc.processCount": {
-        "Value": 8,
+        "Value": 4,
         "Status": "default"
       }
     }
