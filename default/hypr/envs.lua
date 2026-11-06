@@ -29,7 +29,7 @@ hl.env("XCOMPOSEFILE", paths.home .. "/.XCompose")
 -- Quickshell links jemalloc. Transparent huge pages cut TLB pressure on the
 -- long-lived shell heap; the background thread returns memory without
 -- stalling the render thread (E8).
-hl.env("MALLOC_CONF", "background_thread:true,thp:always")
+hl.env("MALLOC_CONF", "background_thread:true,thp:never")
 
 -- hyprctl setenv doesn't reach keybind dispatcher env; use hl.env.
 hl.env("KESTREL_PATH", paths.kestrel_path)
