@@ -26,9 +26,9 @@ hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 -- Use XCompose file.
 hl.env("XCOMPOSEFILE", paths.home .. "/.XCompose")
 
--- Quickshell links jemalloc. Transparent huge pages cut TLB pressure on the
--- long-lived shell heap; the background thread returns memory without
--- stalling the render thread (E8).
+-- Quickshell links jemalloc. THP:never measured lower shell PSS on the GPU
+-- path (243 MB vs 301 MB under VirGL) without a CPU regression; keep the
+-- background thread for returning freed pages off the render thread.
 hl.env("MALLOC_CONF", "background_thread:true,thp:never")
 
 -- hyprctl setenv doesn't reach keybind dispatcher env; use hl.env.
