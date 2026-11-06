@@ -41,6 +41,7 @@ RECLAIM_PSI="${KESTREL_BROKER_RECLAIM_PSI:-10.00}"   # some.avg60 %, above which
 RECLAIM_BYTES="${KESTREL_BROKER_RECLAIM_BYTES:-256M}" # per reclaim pass
 RECLAIM_EVERY="${KESTREL_BROKER_RECLAIM_EVERY:-5}"    # seconds between pressure checks
 BG_MEMORY_HIGH="${KESTREL_BROKER_BG_MEMORY_HIGH:-768M}" # soft cap on background browser memory
+DESKTOP_MEMORY_HIGH="${KESTREL_BROKER_DESKTOP_MEMORY_HIGH:-512M}" # shell/desktop soft cap
 POLL="${KESTREL_BROKER_POLL:-0.25}"                   # fallback poll interval (no socat)
 DRY_RUN="${KESTREL_BROKER_DRY_RUN:-0}"                # print moves instead of writing
 
@@ -155,6 +156,7 @@ setup() {
   printf '1000' >"$(class_dir browser)/active/cpu.weight" 2>/dev/null || true
   printf '100' >"$(class_dir browser)/background/cpu.weight" 2>/dev/null || true
   printf '%s' "$BG_MEMORY_HIGH" >"$(class_dir browser)/background/memory.high" 2>/dev/null || true
+  printf '%s' "$DESKTOP_MEMORY_HIGH" >"$(class_dir desktop)/memory.high" 2>/dev/null || true
   # UCLAMP is applied by the sched_ext class's rq aggregation and feeds
   # schedutil. Keep the values conservative; placement is still scx_kestrel's.
   set_uclamp_dir "$(class_dir desktop)" 50.00 100.00
