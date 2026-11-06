@@ -29,7 +29,7 @@ hl.env("XCOMPOSEFILE", paths.home .. "/.XCompose")
 -- Quickshell links jemalloc. THP:never measured lower shell PSS on the GPU
 -- path (243 MB vs 301 MB under VirGL) without a CPU regression; keep the
 -- background thread for returning freed pages off the render thread.
-hl.env("MALLOC_CONF", "background_thread:true,thp:never")
+hl.env("MALLOC_CONF", "background_thread:true,thp:madvise")
 
 -- hyprctl setenv doesn't reach keybind dispatcher env; use hl.env.
 hl.env("KESTREL_PATH", paths.kestrel_path)
