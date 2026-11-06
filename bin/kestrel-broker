@@ -40,7 +40,7 @@ CLASS_ROOT="${KESTREL_BROKER_CLASS_ROOT:-$(default_class_root)}"
 RECLAIM_PSI="${KESTREL_BROKER_RECLAIM_PSI:-10.00}"   # some.avg60 %, above which we reclaim
 RECLAIM_BYTES="${KESTREL_BROKER_RECLAIM_BYTES:-256M}" # per reclaim pass
 RECLAIM_EVERY="${KESTREL_BROKER_RECLAIM_EVERY:-5}"    # seconds between pressure checks
-BG_MEMORY_HIGH="${KESTREL_BROKER_BG_MEMORY_HIGH:-2G}" # soft cap on background browser memory
+BG_MEMORY_HIGH="${KESTREL_BROKER_BG_MEMORY_HIGH:-768M}" # soft cap on background browser memory
 POLL="${KESTREL_BROKER_POLL:-0.25}"                   # fallback poll interval (no socat)
 DRY_RUN="${KESTREL_BROKER_DRY_RUN:-0}"                # print moves instead of writing
 
