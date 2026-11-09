@@ -109,12 +109,11 @@ Item {
   property int dividerHeight: Style.space(17)
   property bool searchDivider: false
   property int layoutSerial: 0
-  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)
+  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font") ? Style.space(520) : Style.space(300)), panel.availableCardWidth - Style.gapsOut * 2)
   property int visibleRowsHeight: root.dmenuActive ? dmenuRowListHeight(layoutSerial, displayModel.count, filterText) : rowListHeight(layoutSerial, displayModel.count, filterText, searchDivider)
-  property int cardHeight: root.dmenuActive
-    ? Math.min(contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight), panel.height - Style.gapsOut * 2)
-    : Math.min(contentMargin * 2 + headerHeight + contentSpacing + visibleRowsHeight, panel.height - Style.gapsOut * 2)
-
+  property int cardHeight: Math.min(
+    contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight),
+    panel.availableCardHeight - Style.gapsOut * 2)
   function finishRequest(selection) {
     if (!root.requestActive || !root.doneFile) {
       root.opened = false
@@ -151,18 +150,18 @@ Item {
     return (root.filterText || root.dmenuActive) && detail ? root.detailRowHeight : root.baseRowHeight
   }
 
-  // Height the card can devote to rows before running off the screen, or
-  // past the frozen top edge once a search has pinned the card in place.
-  // Uses panel.cardTop rather than effectiveCardTop: the centered top is
-  // derived from the card height, which this value feeds.
+  // Height the card can devote to rows before running off the screen - or
+  // past the frozen size once a search has pinned the card in place.
+  // Uses panel.availableCardHeight rather than fittedContentHeight: the
+  // card height is derived from this value.
   function availableRowsHeight() {
-    var top = panel.cardTop >= 0 ? panel.cardTop : Style.gapsOut
-    var available = panel.height - top - Style.gapsOut - root.contentMargin * 2 - root.headerHeight - root.contentSpacing
+    var inset = root.contentMargin * 2 + root.headerHeight + root.contentSpacing
+    var available = panel.availableCardHeight - inset
     // The starting menu sets the ceiling along with the offset: drilling into
     // a longer submenu scrolls behind the fold instead of growing the card.
     if (panel.maxRowsHeight >= 0) available = Math.min(available, panel.maxRowsHeight)
     // A card that swallows the whole screen reads as a page, not a menu.
-    return Math.min(available, Math.round(panel.height * 0.7))
+    return Math.min(available, Math.round(panel.availableCardHeight * 0.7))
   }
 
   // When every row fits, the list gets its full height. When they don't,
@@ -1066,54 +1065,34 @@ Item {
       if (root.guardsPending) Qt.callLater(function() { root.evaluateGuards() })
     }
   }
-  OverlayWindow {
+  // The popup is the same KeyboardPanel the calendar uses: the card drops
+  // from the bar edge and stays centered on the axis parallel to the bar.
+  // Only a faint scrim is reused from the old full-screen overlay, plus the
+  // rows-height freeze: the first search keystroke or submenu move caps how
+  // much taller the card may grow, so it never swallows the screen.
+  KeyboardPanel {
     id: panel
-    shown: root.opened && root.rowsLoaded
-    WlrLayershell.namespace: "kestrel-menu"
+    anchorItem: root.shell.bar
+    bar: root.shell.bar
+    owner: root
+    open: root.opened && root.rowsLoaded
+    centerOnBar: true
+    focusTarget: keyCatcher
+    scrimColor: Qt.alpha(root.background, 0.15)
+    cardColor: root.background
+    padding: root.contentMargin
+    borderSpec: root.borderSpec
+    contentWidth: root.cardWidth
+    contentHeight: root.cardHeight
 
-    // The card opens centered exactly as always. The first search keystroke
-    // or submenu move freezes the top line where it currently sits, from
-    // then on the card grows and shrinks downward instead of re-centering
-    // on every resize, which made the menu jump around. The rows height is
-    // frozen at the same moment, so the starting menu also caps how tall the
-    // card may grow from there. Closing or changing screens unfreezes both.
-    property int cardTop: -1
     property int maxRowsHeight: -1
-    readonly property int centeredTop: Math.max(Style.gapsOut, Math.round((height - root.cardHeight) / 2))
-    readonly property int effectiveCardTop: cardTop >= 0 ? cardTop : centeredTop
     function freezeCardTop() {
-      if (shown && cardTop < 0) {
-        cardTop = effectiveCardTop
-        maxRowsHeight = root.visibleRowsHeight
-      }
+      if (open && maxRowsHeight < 0) maxRowsHeight = root.visibleRowsHeight
     }
-    onShownChanged: if (!shown) { cardTop = -1; maxRowsHeight = -1 }
-    onTargetScreenChanged: { cardTop = -1; maxRowsHeight = -1 }
+    onOpenChanged: if (!open) maxRowsHeight = -1
+    onScreenChanged: maxRowsHeight = -1
 
-    Rectangle {
-      anchors.fill: parent
-      color: root.scrim
-    }
-
-    MouseArea {
-      anchors.fill: parent
-      onClicked: root.cancel()
-    }
-
-    BorderSurface {
-      id: card
-      width: root.cardWidth
-      height: Math.min(root.cardHeight, panel.height - Style.gapsOut - panel.effectiveCardTop)
-      radius: root.cornerRadius
-      anchors.horizontalCenter: parent.horizontalCenter
-      y: panel.effectiveCardTop
-      color: root.background
-      borderSpec: root.borderSpec
-      padding: root.contentMargin
-
-      MouseArea { anchors.fill: parent; onClicked: {} }
-
-      Item {
+    Item {
         id: keyCatcher
         anchors.fill: parent
         z: root.deleteConfirmOpen ? 20 : 0
@@ -1186,10 +1165,6 @@ Item {
 
       Column {
         anchors.fill: parent
-        anchors.topMargin: card.contentTopInset
-        anchors.rightMargin: card.contentRightInset
-        anchors.bottomMargin: card.contentBottomInset
-        anchors.leftMargin: card.contentLeftInset
         spacing: root.contentSpacing
 
         Rectangle {
@@ -1476,5 +1451,4 @@ Item {
         }
       }
     }
-  }
 }

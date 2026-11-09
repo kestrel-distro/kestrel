@@ -53,6 +53,15 @@ PanelWindow {
   property bool popoutSwitchClosing: false
   property bool focusPrimed: false
 
+  // Optional full-screen dim behind the card. Panels that want a hint of
+  // background separation (e.g. the menu) pass a translucent color; the
+  // default keeps the surface fully transparent like the calendar.
+  property color scrimColor: "transparent"
+
+  // Card color/border override for plugins whose theme differs from the
+  // shared popup palette (defaults keep the popups look).
+  property color cardColor: Commons.Color.popups.background
+
   // Item that should take keyboard focus once the panel maps. Typically a
   // PanelKeyCatcher inside the panel content. Layer-shell grants focus to the
   // surface during the Exclusive prime, but Qt still needs an active-focus
@@ -114,13 +123,19 @@ PanelWindow {
     right: true
   }
 
+  Rectangle {
+    anchors.fill: parent
+    color: scrimColor
+    opacity: root.open ? 1 : 0
+  }
+
   // Clickable region is the whole screen. Clicks in the bar strip are
   // forwarded to registered bar buttons so switching between panel icons
   // works in one click even when the overlay surface is above the bar.
   readonly property real _barStripSize: {
     if (!bar) return 0
     var actual = (root.barPos === "top" || root.barPos === "bottom") ? root.barH : root.barW
-    return Math.max(bar.barSize, actual) + root.gap
+    return Math.max(bar.barSize || 0, actual) + root.gap
   }
   mask: Region {
     width: root.screenW
@@ -236,6 +251,10 @@ PanelWindow {
       focusPrimed = false
     }
     if (!bar) return
+    // Third-party surfaces like remote-loaded menus only get the state-snapshot
+    // bar API (position/barSize), never the live Bar item holding popout click
+    // routing; degrade to plain open/close there.
+    if (typeof bar.requestPopout !== "function") return
     if (open) {
       popoutSwitchClosing = false
       popoutSwitching = bar.activePopout && bar.activePopout !== coordinatorKey
@@ -383,7 +402,7 @@ PanelWindow {
     y: root.cardOrigin.y
     width: root.contentWidth
     height: root.contentHeight
-    color: Commons.Color.popups.background
+    color: root.cardColor
     borderSpec: root.borderSpec
     padding: root.padding
     radius: Style.cornerRadius
