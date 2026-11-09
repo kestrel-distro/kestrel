@@ -952,7 +952,7 @@ Item {
 
   PointerMoveGate {
     id: pointerGate
-    referenceItem: card
+    referenceItem: keyCatcher
   }
 
   Connections {
@@ -1077,11 +1077,23 @@ Item {
     owner: root
     open: root.opened && root.rowsLoaded
     centerOnBar: true
+    gap: 0
     focusTarget: keyCatcher
-    scrimColor: Qt.alpha(root.background, 0.15)
+    // No dim scrim: the menu is a plain drop-down from the bar, not a modal.
+    scrimColor: "transparent"
     cardColor: root.background
     padding: root.contentMargin
-    borderSpec: root.borderSpec
+    // Keep the side/bottom border but drop the top one: the card is glued
+    // to the bar, so a top stroke would draw a seam across the junction.
+    borderSpec: {
+      var spec = root.borderSpec
+      if (!spec || !spec.widths) return Border.none()
+      return {
+        color: spec.color,
+        gradient: spec.gradient,
+        widths: { top: 0, right: spec.widths.right, bottom: spec.widths.bottom, left: spec.widths.left }
+      }
+    }
     contentWidth: root.cardWidth
     contentHeight: root.cardHeight
 

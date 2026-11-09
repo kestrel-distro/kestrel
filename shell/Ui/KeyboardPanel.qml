@@ -205,8 +205,11 @@ PanelWindow {
   // parallel axis (along the bar) the anchor item's reported position is
   // still consistent with the bar content origin, so it's accurate for
   // centering the card under the icon.
-  readonly property real barW: anchorWindow ? anchorWindow.width : screenW
-  readonly property real barH: anchorWindow ? anchorWindow.height : 0
+  // Fall back to the bar's declared size: plugins that only receive the
+  // bar-state snapshot (no live window reference) still need the true strip
+  // height, otherwise a gap-0 card would sit over the bar instead of under.
+  readonly property real barW: anchorWindow ? anchorWindow.width : (bar && bar.barSize > 0 ? bar.barSize : screenW)
+  readonly property real barH: anchorWindow ? anchorWindow.height : (bar && bar.barSize > 0 ? bar.barSize : 0)
   readonly property point cardOrigin: {
     if (!anchorItem || !bar) return Qt.point(margin, margin)
     var x = 0, y = 0
