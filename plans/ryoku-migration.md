@@ -59,6 +59,14 @@ Status: in progress. Revision 2 — decisions taken.
       Ryoku tokens through them so plugins never import `Ryoku.Ui` directly
       (avoids a second design system in plugin code).
 
+### C2. Compositor look
+- [x] `default/hypr/looknfeel.lua`: gaps 12/18, inactive opacity 0.94, hairline
+      shadow (range 45), blur (size 4, vibrancy .17, noise .01), and
+      `opaque-tile-no-blur` so tiled windows never pay for the frost.
+- [x] Launcher layer rule: no compositor animation, card-only blur
+      (`ignore_alpha 0.05`), namespace `kestrel-launcher`.
+- [ ] Shaders: out of scope by decision.
+
 ### C. Launcher (all variants)
 - [x] Kestrel-native launcher (`shell/plugins/launcher/`, `kestrel.launcher`):
       paper card over the shared overlay window with exclusive keyboard focus;

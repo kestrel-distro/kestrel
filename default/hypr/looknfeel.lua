@@ -5,8 +5,8 @@ local inactive_border_color = "rgba(595959aa)"
 
 hl.config({
   general = {
-    gaps_in = 5,
-    gaps_out = 10,
+    gaps_in = 12,
+    gaps_out = 18,
     border_size = 2,
 
     col = {
@@ -21,13 +21,27 @@ hl.config({
 
   decoration = {
     rounding = 0,
+    active_opacity = 1,
+    inactive_opacity = 0.94,
 
+    -- Hairline depth: a shadow appears only where something floats over
+    -- something else, never behind a tiled window.
     shadow = {
-      enabled = false,
+      enabled = true,
+      range = 45,
+      render_power = 4,
+      color = 0xd10a0807,
     },
 
+    -- A soft frost behind popouts and layer cards. Tiled windows opt out
+    -- below, so the desktop under a moving window never pays for it.
     blur = {
-      enabled = false,
+      enabled = true,
+      size = 4,
+      passes = 1,
+      vibrancy = 0.17,
+      noise = 0.01,
+      new_optimizations = true,
     },
   },
 
@@ -63,6 +77,10 @@ hl.config({
     enabled = true,
   },
 })
+
+-- Inactive tiles keep their 94% tint but do not blur the animating desktop
+-- beneath them; floating glass and layer cards still blur.
+hl.window_rule({ name = "opaque-tile-no-blur", match = { float = false }, no_blur = true })
 
 -- Default animations, see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
 hl.curve("easeOutQuint", { type = "bezier", points = { { 0.23, 1 }, { 0.32, 1 } } })

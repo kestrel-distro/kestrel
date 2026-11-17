@@ -106,6 +106,18 @@ QtObject {
     property color selectedText: root.pick("menu.selected-text", root.accent)
     property color selectedBorder: root.composed("menu.selected-border", "menu.selected-border-alpha", root.foreground, 0.0)
   }
+  // The launcher mirrors the menu tokens but keeps its own section, so a theme
+  // can frost the palette differently from the command menu (Ryoku's default
+  // card is 0.95 there).
+  readonly property QtObject launcher: QtObject {
+    property color background: root.composed("launcher.background", "launcher.background-alpha", root.background, 0.95)
+    property color text: root.pick("launcher.text", root.foreground)
+    property color border: root.composed("launcher.border", "launcher.border-alpha", root.foreground, 1.0)
+    property color scrim: root.composed("launcher.scrim", "launcher.scrim-alpha", root.background, 0.5)
+    property color selectedBackground: root.composed("launcher.selected-background", "launcher.selected-background-alpha", root.foreground, 0.08)
+    property color selectedText: root.pick("launcher.selected-text", root.accent)
+    property color selectedBorder: root.composed("launcher.selected-border", "launcher.selected-border-alpha", root.foreground, 0.0)
+  }
   // polkit + lock share a single border-alpha across border / border-active /
   // border-error: the three states are mutually exclusive in time, so one
   // companion is enough.

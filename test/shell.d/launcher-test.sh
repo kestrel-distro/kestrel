@@ -33,6 +33,16 @@ assert(/OverlayWindow \{/.test(qml), 'the launcher rides the shared overlay wind
 assert(/shownKeyboardFocus: WlrKeyboardFocus\.Exclusive/.test(qml), 'the launcher takes the keyboard, so its search field can be typed into')
 assertEqual((qml.match(/onOpenedChanged:/g) || []).length, 1, 'one open handler owns both the reset and the focus')
 assert(/appLibrary/.test(qml), 'apps come from the shell AppLibrary')
+assert(/Commons\.Color\.launcher\.background/.test(qml), 'the card reads its own [launcher] surface tokens')
+const color = read('shell/Commons/Color.qml')
+assert(/readonly property QtObject launcher: QtObject/.test(color), 'Color exposes a launcher surface')
+for (const key of ['launcher.background', 'launcher.background-alpha', 'launcher.text',
+                   'launcher.border', 'launcher.border-alpha', 'launcher.scrim',
+                   'launcher.selected-background', 'launcher.selected-text']) {
+  assert(color.includes(key), `Color reads ${key}`)
+}
+assert(/namespace = "\^kestrel-launcher\$"/.test(read('default/hypr/apps/kestrel-shell.lua')),
+  'the launcher layer has its own compositor rules')
 assert(/solidEntries|sortedEntries/.test(qml), 'apps are ranked by the shared app search')
 
 // The query model: prefixes route, arithmetic is parsed (never eval'd), and a
@@ -51,4 +61,12 @@ const actions = vm.runInContext('sortedActions("/")', context, { timeout: 1000 }
 assert(Array.isArray(actions) && actions.length > 0, 'the action catalogue is exposed')
 assert(actions.every(a => a.id && a.name && a.command), 'every action names an id, a label and a command')
 assertEqual(vm.runInContext('webQuery("? wayland")', context), 'wayland', 'the web prefix is stripped')
+
+// The compositor look follows the paper-and-ink defaults: a real gap, a
+// hairline shadow only where something floats, and blur that spares tiles.
+const look = read('default/hypr/looknfeel.lua')
+assert(/gaps_in = 12/.test(look) && /gaps_out = 18/.test(look), 'the desktop gap follows the design')
+assert(/shadow = \{[\s\S]{0,120}enabled = true/.test(look), 'floating surfaces cast a hairline shadow')
+assert(/blur = \{[\s\S]{0,160}vibrancy = 0\.17/.test(look), 'blur uses the design vibrancy')
+assert(/name = "opaque-tile-no-blur", match = \{ float = false \}, no_blur = true/.test(look), 'tiled windows never pay for blur')
 JS

@@ -24,13 +24,13 @@ Item {
   property bool cursorActive: false
   property var rows: []
 
-  property color background: Commons.Color.menu.background
-  property color foreground: Commons.Color.menu.text
-  property color border: Commons.Color.menu.border
-  property var borderSpec: Border.surfaceSpec("menu", "border", border, Math.max(1, Style.space(2)))
-  property color scrim: Commons.Color.menu.scrim
-  property color selectedBackground: Commons.Color.menu.selectedBackground
-  property color selectedText: Commons.Color.menu.selectedText
+  property color background: Commons.Color.launcher.background
+  property color foreground: Commons.Color.launcher.text
+  property color border: Commons.Color.launcher.border
+  property var borderSpec: Border.surfaceSpec("launcher", "border", border, Math.max(1, Style.space(2)))
+  property color scrim: Commons.Color.launcher.scrim
+  property color selectedBackground: Commons.Color.launcher.selectedBackground
+  property color selectedText: Commons.Color.launcher.selectedText
   readonly property int cornerRadius: Style.cornerRadius
   property string fontFamily: Style.font.menuFamily
   property int contentMargin: Style.spacing.panelPadding
@@ -240,8 +240,8 @@ Item {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               placeholderText: "Search apps, actions, =calc, ?web"
-              foreground: Commons.Color.menu.text
-              accent: Commons.Color.menu.selectedText
+              foreground: Commons.Color.launcher.text
+              accent: Commons.Color.launcher.selectedText
               font.family: root.fontFamily
               font.pixelSize: Style.font.title
               horizontalPadding: 0

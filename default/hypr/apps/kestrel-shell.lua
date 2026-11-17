@@ -9,7 +9,12 @@ hl.layer_rule({ match = { namespace = "kestrel-bar" }, no_anim = true, animation
 -- animations. Overlays open as soon as their scale is ready, without a
 -- compositor fade or slide. Panels keep their own QML opacity transition
 -- for normal open/close, and skip it for panel handoff.
-hl.layer_rule({ match = { namespace = "^(kestrel-menu|kestrel-image-selector|kestrel-emojis|kestrel-clipboard|kestrel-keyboard-panel|kestrel-osd|kestrel-reminders|kestrel-network-qr)$" }, no_anim = true, animation = "none" })
+hl.layer_rule({ match = { namespace = "^(kestrel-launcher|kestrel-menu|kestrel-image-selector|kestrel-emojis|kestrel-clipboard|kestrel-keyboard-panel|kestrel-osd|kestrel-reminders|kestrel-network-qr)$" }, no_anim = true, animation = "none" })
+
+-- The launcher card is translucent paper: frost only what is inside it.
+-- ignore_alpha keeps the compositor blur off the transparent surround (the
+-- full-output layer reserves room for the card and its shadow).
+hl.layer_rule({ match = { namespace = "^kestrel-launcher$" }, blur = true, ignore_alpha = 0.05 })
 
 -- Keep the shell background layer instant; it fades itself.
 hl.layer_rule({ match = { namespace = "^kestrel-background$" }, no_anim = true, animation = "none" })
