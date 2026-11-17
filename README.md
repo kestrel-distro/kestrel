@@ -191,4 +191,5 @@ Maintainer documentation is in
 
 ## License
 
-Kestrel is released under the MIT License. See [LICENSE](LICENSE).
+Kestrel is released under the GNU General Public License version 3. See
+[LICENSE](LICENSE) and [NOTICE](NOTICE) for upstream attributions.

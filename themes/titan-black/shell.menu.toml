@@ -1,0 +1,15 @@
+# Titan: the menu is the bar's paper extending down. A steel hairline,
+# a scrim one shade darker than the sheet, and the accent on the chosen row.
+[menu]
+background                = "#050508"
+background-alpha          = 1.0
+text                      = "#c8c8d4"
+border                    = "#5a9ebf"
+border-alpha              = 0.45
+scrim                     = "#030305"
+scrim-alpha               = 0.5
+selected-background       = "#c8c8d4"
+selected-background-alpha = 0.08
+selected-text             = "#5a9ebf"
+selected-border           = "#5a9ebf"
+selected-border-alpha     = 0.35

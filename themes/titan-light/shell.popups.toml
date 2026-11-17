@@ -1,0 +1,7 @@
+# Titan: paper cards with a steel hairline.
+[popups]
+background       = "#f4f5f7"
+background-alpha = 1.0
+text             = "#23232e"
+border           = "#5a9ebf"
+border-alpha     = 0.45

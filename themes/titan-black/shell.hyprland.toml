@@ -1,0 +1,5 @@
+# Titan: a flat steel border instead of a wallpaper gradient, so the
+# compositor edge reads as one hairline like the rest of the frame.
+[hyprland]
+active-border            = "#5a9ebf"
+active-border-foreground = "#c8c8d4"

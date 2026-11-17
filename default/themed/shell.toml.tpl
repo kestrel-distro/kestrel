@@ -104,6 +104,13 @@ scale-with-font = true
 # heading ≈ base * 1.333). The shell only floors this at 1px; increase it
 # as much as you want.
 base-size = 12
+# Optional family overrides. Leave commented to follow the session font
+# (shell.json fontFamily / `kestrel font set`). A theme that wants a distinct
+# voice can name its own: display-family carries headlines and poster titles,
+# mono-family carries data, keycaps and code, jp-family carries kanji glosses.
+# display-family = "Fraunces"
+# mono-family    = "SpaceMono Nerd Font"
+# jp-family      = "Noto Sans CJK JP"
 # Per-token overrides, in px. Uncomment any to pin a specific size without
 # affecting the rest of the scale. Useful for stylistic emphasis (a
 # minimalist theme that wants a bigger heading without scaling everything).

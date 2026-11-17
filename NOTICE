@@ -1,0 +1,26 @@
+Kestrel
+
+Kestrel is distributed under the GNU General Public License version 3.
+
+Kestrel's shell and desktop started from Omarchy, created by David Heinemeier
+Hansson and contributors (https://github.com/basecamp/omarchy), which is
+distributed under the MIT License. The MIT terms continue to cover those
+portions; they are compatible with, and redistributed here under, GPLv3.
+
+Ryoku (https://github.com/ryoku-dev/ryoku) is distributed under the GNU General
+Public License version 3. Kestrel vendors Ryoku's QML design system
+(shell/Ryoku/Ui: tokens, primitives and motion) and adopts its design language,
+palette pipeline and shell surfaces. Ryoku's own attribution notice follows:
+
+  Ryoku
+
+  Ryoku is distributed under the GNU General Public License version 3.
+
+  Ryoku's alpha series (through v0.1.1-alpha) began as a fork of Omarchy. The
+  beta tree was pruned and rebuilt from an empty root; its installer, shell,
+  theming, boot art, tooling and system definition are Ryoku's own.
+
+  The Nomarchy bar style in Ryoku is adapted from the Omarchy quattro shell.
+
+Third-party components keep their own licenses; see the NOTICE files shipped
+beside them.

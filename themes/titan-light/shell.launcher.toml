@@ -1,0 +1,14 @@
+# Titan: the launcher sits a breath above the sheet, same hairline and accent.
+[launcher]
+background                = "#f4f5f7"
+background-alpha          = 0.96
+text                      = "#23232e"
+border                    = "#5a9ebf"
+border-alpha              = 0.5
+scrim                     = "#dfe1e8"
+scrim-alpha               = 0.5
+selected-background       = "#23232e"
+selected-background-alpha = 0.08
+selected-text             = "#5a9ebf"
+selected-border           = "#5a9ebf"
+selected-border-alpha     = 0.3

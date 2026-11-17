@@ -281,6 +281,12 @@ QtObject {
   property int fontBaseSize: 12
 
   property var fontOverrides: ({})
+  // Optional per-theme families. Empty means "follow fontFamily", so a user
+  // who picks a system font still owns the shell; a theme that wants a
+  // distinct display or mono face sets these in its shell.toml.
+  property string displayFamilyOverride: ""
+  property string monoFamilyOverride: ""
+  property string jpFamilyOverride: ""
   property var barOverrides: ({})
   property bool barScaleWithFont: true
   readonly property real fontScale: Math.max(1 / 12, fontBaseSize / 12)
@@ -324,6 +330,12 @@ QtObject {
     readonly property string family: root.fontFamily
     readonly property string resolvedFamily: root.resolvedFontFamily
     readonly property string menuFamily: root.menuFontFamily
+    // The display face carries headlines and poster titles; mono carries
+    // data and keycaps. Both fall back to the system family, so a theme that
+    // names no font changes nothing.
+    readonly property string displayFamily: root.displayFamilyOverride.length > 0 ? root.displayFamilyOverride : root.fontFamily
+    readonly property string monoFamily: root.monoFamilyOverride.length > 0 ? root.monoFamilyOverride : root.fontFamily
+    readonly property string jpFamily: root.jpFamilyOverride.length > 0 ? root.jpFamilyOverride : root.fontFamily
     readonly property int baseSize: root.fontBaseSize
 
     readonly property int caption:      root.fontToken("caption",       root.fontPx(0.833))   // 10
@@ -395,6 +407,7 @@ QtObject {
   // a single parse pass feeds both singletons.
   function applyShellValues(values) {
     var fontOut = {}
+    var fontFamilyOut = {}
     var barOut = {}
     var styleOut = {}
     var spacingOut = {}
@@ -410,6 +423,10 @@ QtObject {
       var key = fullKey.substr(dot + 1)
       var raw = v[fullKey]
       if (section === "font") {
+        if (key === "display-family" || key === "mono-family" || key === "jp-family") {
+          fontFamilyOut[key] = String(raw)
+          continue
+        }
         var ival = parseInt(raw, 10)
         if (!isFinite(ival)) continue
         if (key === "base-size") nextBase = ival
@@ -445,6 +462,9 @@ QtObject {
     spacingScaleWithFont = nextSpacingScaleWithFont
     fontBaseSize = nextBase
     fontOverrides = fontOut
+    displayFamilyOverride = fontFamilyOut["display-family"] || ""
+    monoFamilyOverride = fontFamilyOut["mono-family"] || ""
+    jpFamilyOverride = fontFamilyOut["jp-family"] || ""
     barOverrides = barOut
     barScaleWithFont = nextBarScaleWithFont
     spacingOverrides = spacingOut
