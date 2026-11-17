@@ -45,9 +45,12 @@ Status: in progress. Revision 2 — decisions taken.
 - [ ] Rewire `Commons/Style.qml` geometry/motion to Tokens (single source).
 - [ ] Restyle `shell/Ui/*` and every plugin surface to hairline + inversion,
       radius from Tokens, no chrome gradients.
-- [ ] Package fonts: Fraunces, Space Grotesk, SpaceMono Nerd Font,
-      Noto Sans CJK JP; default `shell.json` sets them, themes may override
-      via the new `[font]` keys.
+- [x] Fonts packaged: `ttf-space-mono-nerd` (repos), `otf-space-grotesk` and
+      `ttf-fraunces` (AUR), and the theme template now ships the three voices
+      (`display-family`, `mono-family`, `jp-family`) as defaults.
+- [ ] Point the kit's UI family at Space Grotesk (today `Style.fontFamily` is
+      the fontconfig `monospace` alias; the data/display families already flow
+      through `Style.font`).
 - [ ] Tests: token resolution, light/dark inverse, theme validation for all 24
       themes; update border/colour source-assertion tests.
 

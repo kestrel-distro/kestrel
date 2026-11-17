@@ -1,8 +1,8 @@
+
 # AUR packages installed with yay. Version on each line is the frozen
+# Format: <package>=<version>
 # snapshot Kestrel was audited against; the ISO builder installs these via
 # yay and records the resolved version.
-# Format: <package>=<version>
-
 intel-ipu7-camera-bin=r31.09ccd02-1
 lib32-nvidia-580xx-utils=580.178.04-1
 limine-mkinitcpio-hook=1.40.0-1
@@ -10,7 +10,9 @@ limine-snapper-sync=1.32.1-1
 mise-bin=2026.10.4-1
 nvidia-580xx-dkms=580.178.04-4
 nvidia-580xx-utils=580.178.04-4
+otf-space-grotesk=2-2
 qmk-hid=0.1.11-3
+ttf-fraunces=1.000-1
 ttf-ia-writer=20181225-1
 ttfx=0.5.0-1
 tuxedo-drivers-nocompatcheck-dkms=4.22.1-1
@@ -19,5 +21,5 @@ ufw-docker=251123-1
 vi=1:070224-9
 yaru-icon-theme=26.04.5.1ubuntu-1
 yay=13.0.1-1
-zuno=1.4.0-1
 zen-browser-bin=1.23.4b-1
+zuno=1.4.0-1
