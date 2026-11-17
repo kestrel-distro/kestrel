@@ -378,12 +378,48 @@ Singleton {
     }
 
     function _write(id, path, value) {
-        control.queued += "call settings.patch "
-            + JSON.stringify({ id: id, path: path, value: value }) + "\n";
-        if (control.connected)
-            control.flushQueued();
-        else
-            control.connected = true;
+        // Kestrel has no ryoku-shell daemon: persist with jq into the product's
+        // own settings file. The path is constrained to the "orpheus" root so a
+        // malformed key can never patch another section.
+        const key = String(path || "")
+        if (!/^orpheus(\.[A-Za-z0-9_-]+)*$/.test(key)) {
+            _onReply(JSON.stringify({ id: id, ok: false, error: "invalid settings path" }))
+            return
+        }
+        const file = Config.path
+        const json = JSON.stringify(value === undefined ? null : value)
+        queuedWrites.push({ id: id, key: key, json: json })
+        if (!writer.running) startWrite()
+    }
+
+    property var queuedWrites: ([])
+
+    function startWrite() {
+        if (queuedWrites.length === 0 || writer.running)
+            return
+        const job = queuedWrites[0]
+        writer.command = ["sh", "-c",
+            'mkdir -p "$(dirname "$1")"; [ -f "$1" ] || printf "{}\n" >"$1"; '
+            + 'tmp=$(mktemp) && jq --indent 2 --argjson v "$2" "$3" "$1" >"$tmp" && mv "$tmp" "$1"',
+            "sh", Config.path, job.json, "." + job.key + " = $v"]
+        writer.writing = job.id
+        writer.running = true
+    }
+
+
+    Process {
+        id: writer
+        property string writing: ""
+        onExited: function(code) {
+            const job = prefs.queuedWrites[0]
+            const next = prefs.queuedWrites.slice(1)
+            prefs.queuedWrites = next
+            if (job) {
+                prefs._onReply(JSON.stringify({ id: job.id, ok: code === 0,
+                    error: code === 0 ? "" : "could not save " + job.key }))
+            }
+            if (next.length > 0) Qt.callLater(prefs.startWrite)
+        }
     }
 
     function _onReply(line) {
@@ -431,34 +467,10 @@ Singleton {
 
     // Unanswered writes go out again on a fresh connection, backing off to every
     // 30 s; they are idempotent, and the choice stays applied meanwhile.
-    function _resendStalled(now) {
-        const ids = Object.keys(prefs._inflight);
-        let stalled = false;
-        for (let i = 0; i < ids.length; ++i) {
-            const entry = prefs._inflight[ids[i]];
-            if (now - entry.sentAt > Math.min(30000, 2000 * Math.pow(2, entry.tries - 1)))
-                stalled = true;
-        }
-        if (!stalled)
-            return;
-        const inflight = Object.assign({}, prefs._inflight);
-        control.queued = "";
-        for (let i = 0; i < ids.length; ++i) {
-            const entry = Object.assign({}, inflight[ids[i]]);
-            entry.tries += 1;
-            entry.sentAt = now;
-            inflight[ids[i]] = entry;
-            control.queued += "call settings.patch "
-                + JSON.stringify({ id: ids[i], path: entry.path, value: entry.value }) + "\n";
-            if (entry.tries === 3) {
-                prefs.saveError = "The shell service is not answering.";
-                console.warn("orpheus: still saving " + entry.path);
-            }
-        }
-        prefs._inflight = inflight;
-        control.connected = false;
-        Qt.callLater(function() { control.connected = true; });
-    }
+    // File writer: a refused write already reports through _onReply, so there
+    // is no socket to resend to. Kept as the settle timer's no-op hook.
+    function _resendStalled(now) {}
+
 
     function _settle() {
         const now = Date.now();
@@ -503,26 +515,4 @@ Singleton {
         }
     }
 
-    readonly property string _sockPath:
-        (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-shell.sock"
-
-    Socket {
-        id: control
-        path: prefs._sockPath
-        property string queued: ""
-
-        function flushQueued() {
-            if (!connected || queued.length === 0)
-                return;
-            write(queued);
-            flush();
-            queued = "";
-        }
-
-        parser: SplitParser {
-            onRead: line => prefs._onReply(line)
-        }
-
-        onConnectionStateChanged: if (connected) flushQueued()
-    }
 }

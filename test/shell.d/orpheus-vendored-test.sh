@@ -57,6 +57,16 @@ assertEqual(config.barStyle, 'kestrel', 'the shipped bar style is the Kestrel ba
 const shellQml = read('shell/shell.qml')
 assert(/shellConfig\.barStyle === "orpheus" \? "orpheus" : "kestrel"/.test(shellQml),
   'an unknown bar style falls back to the Kestrel bar')
+
+// Settings persistence no longer needs Ryoku's daemon: Prefs patches the
+// product's own file, and Config reads it.
+const prefs = read(`${base}/settings/Prefs.qml`)
+assert(!/ryoku-shell\.sock/.test(prefs), 'Orpheus settings no longer open the Ryoku socket')
+assert(/jq --indent 2 --argjson v/.test(prefs), 'settings persist through jq into the product file')
+assert(/Config\.path/.test(prefs), 'the writer targets the adapter path')
+const configAdapter = read(`${base}/services/Config.qml`)
+assert(/kestrel\/orpheus\.json/.test(configAdapter), 'the adapter owns ~/.config/kestrel/orpheus.json')
+assert(/property var orpheus/.test(configAdapter) && /FileView/.test(configAdapter), 'the adapter loads the product file')
 assert(/source: "plugins\/bar\/orpheus\/Scene\.qml"/.test(shellQml), 'selecting Orpheus mounts its scene')
 assert(/active: shell\.barStyle !== "orpheus" && shell\.activeBarId === shell\.defaultBarId/.test(shellQml),
   'the quattro bar is unmounted while Orpheus runs')

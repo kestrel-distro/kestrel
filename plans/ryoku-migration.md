@@ -106,10 +106,12 @@ Status: in progress. Revision 2 — decisions taken.
 - [x] `barStyle` host switch: `config/kestrel/shell.json` defaults to
       `"kestrel"`; selecting `"orpheus"` mounts `Scene.qml` once per screen and
       unmounts the quattro bar. Any other value keeps the Kestrel bar.
-- [ ] Before flipping the default: port `settings/Prefs.qml` persistence (it
-      writes through `ryoku-shell.sock`, which does not exist on Kestrel) and
-      give the silent adapters real data (Weather/Battery/Audio/Tray/…), then
-      validate in the VM.
+- [x] Orpheus settings persist without Ryoku's daemon: `Prefs` patches
+      `~/.config/kestrel/orpheus.json` with jq through a serialized writer, and
+      `services/Config.qml` loads that file.
+- [ ] Before flipping the default: give the silent adapters real data
+      (Weather/Battery/Audio/AudioBars/Tray/Devices/Updates/Holidays/Power/
+      Notifications), then validate in the VM.
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
       bar widget contract available for existing plugins.
 - [ ] Port Kestrel-only widgets (agents, vault) into Orpheus' widget registry.
