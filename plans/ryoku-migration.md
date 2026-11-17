@@ -48,9 +48,8 @@ Status: in progress. Revision 2 — decisions taken.
 - [x] Fonts packaged: `ttf-space-mono-nerd` (repos), `otf-space-grotesk` and
       `ttf-fraunces` (AUR), and the theme template now ships the three voices
       (`display-family`, `mono-family`, `jp-family`) as defaults.
-- [ ] Point the kit's UI family at Space Grotesk (today `Style.fontFamily` is
-      the fontconfig `monospace` alias; the data/display families already flow
-      through `Style.font`).
+- [x] The kit speaks Space Grotesk: `[font] family` sets `Style.font.family`
+      and the menu family, with the session font as the fallback.
 - [ ] Tests: token resolution, light/dark inverse, theme validation for all 24
       themes; update border/colour source-assertion tests.
 
@@ -93,6 +92,11 @@ Status: in progress. Revision 2 — decisions taken.
 ### D. Orpheus bar (copy)
 - [ ] Vendor `ryoku/shell/plugin` (`Ryoku.Blobs`, C++ QML plugin: BlobRect,
       BlobWave, BlobGroup, shaders) and add it to the ISO/package build.
+      Blocker: it is a Qt6 CMake module (Concurrent, Quick, ShaderTools,
+      Multimedia, Quick3D) whose shaders are baked with qt_add_shaders, so it
+      must be built on the package/ISO build host and shipped prebuilt under a
+      QML import path; the dev workstation lacks Qt6 Quick3D, so this cannot be
+      built or validated from the checkout alone.
 - [ ] Vendor `modules/bar` + `barstyles/orpheus` and the shared bar services
       it reads (media, battery, workspaces, tray).
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
