@@ -1566,7 +1566,7 @@ ShellRoot {
     var lines = String(raw || "").split("\n")
     for (var i = 0; i < lines.length; i++) {
       var match = /^([A-Za-z]+)\s+(\S+)\s*$/.exec(lines[i])
-      if (match && ["menu", "panel", "audio", "brightness", "ipc"].indexOf(match[1]) !== -1)
+      if (match && ["menu", "panel", "audio", "brightness", "ipc", "launcher"].indexOf(match[1]) !== -1)
         entries.push({ kind: match[1], target: match[2], name: match[1] + "." + match[2] })
     }
     return entries
@@ -1576,7 +1576,9 @@ ShellRoot {
   readonly property var ipcShortcutServices: ({ media: "kestrel.media", notifications: "kestrel.notifications" })
 
   function runShortcut(entry) {
-    if (entry.kind === "menu") {
+    if (entry.kind === "launcher") {
+      shell.toggle("kestrel.launcher", "{}")
+    } else if (entry.kind === "menu") {
       shell.toggle("kestrel.menu", JSON.stringify({ menu: entry.target }))
     } else if (entry.kind === "ipc") {
       // "media.next" runs the media service's own IPC handler for next.

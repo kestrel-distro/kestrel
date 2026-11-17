@@ -94,6 +94,8 @@ local function command_from(value, description)
 
   if value.kestrel then
     return "kestrel-launch-" .. value.kestrel
+  elseif value.launcher then
+    return shell_dispatcher("launcher", value.launcher, "kestrel-shell shell toggle kestrel.launcher '{}'")
   elseif value.menu then
     return shell_dispatcher("menu", value.menu, "kestrel-menu toggle " .. shell_quote(value.menu))
   elseif value.panel then

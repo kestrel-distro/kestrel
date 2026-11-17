@@ -1,3 +1,4 @@
+o.bind("SUPER + SPACE", "Launcher", { launcher = "default" })
 o.bind("SUPER + D", "Kestrel menu", { menu = "root" })
 o.bind("SUPER + CTRL + E", "Emojis", { panel = "kestrel.emojis" })
 o.bind("SUPER + CTRL + C", "Capture menu", { menu = "capture" })

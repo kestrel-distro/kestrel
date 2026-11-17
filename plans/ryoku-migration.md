@@ -60,6 +60,13 @@ Status: in progress. Revision 2 — decisions taken.
       (avoids a second design system in plugin code).
 
 ### C. Launcher (all variants)
+- [x] Kestrel-native launcher (`shell/plugins/launcher/`, `kestrel.launcher`):
+      paper card over the shared overlay window with exclusive keyboard focus;
+      apps from the shell AppLibrary, an action catalogue, safe arithmetic and
+      web search, routed by `=`, `?`, `/` prefixes; Super+Space, the
+      `launcher default` shortcut and IPC all reach it.
+- [ ] Port Ryoku's six visual variants (Main/Hero/Kairos/Spotlight/Python/
+      OkShell) and its dispatcher/provider set once the service adapters exist.
 - [ ] Vendor `modules/launcher` (variants + shared providers/singletons) and
       map its service dependencies onto Kestrel: `AppLibrary`, window list,
       clipboard, media, files, packages, web.

@@ -7,6 +7,7 @@
 # spawn per keypress. Anything missing here still binds, through the
 # kestrel-menu, kestrel-shell, kestrel-audio-output-volume or
 # kestrel-brightness-display command instead.
+launcher default
 menu root
 menu apps
 menu capture
