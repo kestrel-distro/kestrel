@@ -24,6 +24,10 @@ Status: in progress. Revision 2 — decisions taken.
 - `shell/Ryoku/Ui/` — Ryoku's whole QML design system (`Ryoku.Ui`,
   `Ryoku.Ui.Singletons.Tokens`), importable from the shell because the shell
   dir is a QML import root. Pure QML, no build step.
+- `shell/Commons/Tokens.qml` — the design vocabulary (paper, four-tier ink,
+  bone/inverse pair, hairlines, tints, sun/alert, geometry, motion, `light`)
+  resolved from `Commons.Color`/`Commons.Style`, registered as
+  `qs.Commons.Tokens`. No second palette, and light themes invert correctly.
 - `default/themed/shell.toml.tpl` `[font]` now accepts `display-family`,
   `mono-family`, `jp-family`; `Commons/Style.qml` parses them and exposes
   `Style.font.displayFamily/monoFamily/jpFamily`, falling back to the session
@@ -37,10 +41,7 @@ Status: in progress. Revision 2 — decisions taken.
 ## remaining work, in order
 
 ### A. Tokens adoption in the shell (the aesthetic lands)
-- [ ] `Commons/Color.qml` keeps owning `colors.toml`/`shell.toml`; add
-      `Commons/Tokens.qml` that maps the Ryoku token vocabulary onto those
-      values (paper, 4-tier ink, bone/inverse, line/tint, sun/alert, type,
-      space, geometry, motion, `light`).
+- [x] `Commons/Tokens.qml` bridge landed.
 - [ ] Rewire `Commons/Style.qml` geometry/motion to Tokens (single source).
 - [ ] Restyle `shell/Ui/*` and every plugin surface to hairline + inversion,
       radius from Tokens, no chrome gradients.
