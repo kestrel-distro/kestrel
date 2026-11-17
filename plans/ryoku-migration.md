@@ -95,8 +95,16 @@ Status: in progress. Revision 2 — decisions taken.
       builds with Qt Quick + ShaderTools, no Quick3D/Multimedia. It compiles and
       imports cleanly here; `packaging/build-ryoku-blobs.sh` builds and installs
       it into `<prefix>/shell/Ryoku/Blobs` on the package/ISO host.
-- [ ] Vendor `modules/bar` + `barstyles/orpheus` and the shared bar services
-      it reads (media, battery, workspaces, tray).
+- [x] Vendored `barstyles/orpheus` (+ `barkit` and the shared components it
+      re-exports) into `shell/plugins/bar/orpheus/`, and added
+      `orpheus/services` — the adapter singletons the scene binds to, resolved
+      against `qs.Commons`/Quickshell (Weather/Battery/Audio/Tray/… are silent
+      adapters until the Kestrel services expose them).
+- [ ] Still unresolved before mounting: `import shell.modules.stage.frame`
+      (Frame.qml/Scene.qml) and `import shell.modules.phone` (Phone page);
+      vendor or strip those, then add the `barStyle` host switch.
+      Covered by test/shell.d/orpheus-vendored-test.sh (asserts the tree is
+      inert and no file still imports Ryoku's shell modules it replaced).
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
       bar widget contract available for existing plugins.
 - [ ] Port Kestrel-only widgets (agents, vault) into Orpheus' widget registry.
