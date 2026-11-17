@@ -43,8 +43,21 @@ for (const name of ['Weather', 'Media', 'Battery', 'Audio', 'AudioBars', 'Music'
 assert(/import qs\.Commons/.test(read(`${base}/services/Theme.qml`)), 'the Theme adapter reads qs.Commons')
 assert(/Tokens\.inkDim/.test(read(`${base}/services/Theme.qml`)), 'the Theme adapter uses the design tokens')
 
-// Inert until the bar-style host mounts it: the running shell must not
-// reference the vendored tree yet.
+// The Stage framing dependency is replaced by a local shim, and the phone
+// page (which needed Ryoku's phone module) is dropped with its registry entry.
+assert(exists(`${base}/stageframe/qmldir`), 'the stage framing shim ships')
+assert(/function framing\(screenName\) \{ return false \}/.test(read(`${base}/stageframe/StageFrame.qml`)),
+  'the shim never frames a monitor')
+assert(!exists(`${base}/modules/Phone.qml`), 'the phone page is dropped')
+assert(!/"phone"/.test(read(`${base}/modules/Registry.js`)), 'no registry entry loads a missing phone page')
+
+// The bar-style host: Orpheus is opt-in and the shipped bar stays default.
+const config = JSON.parse(read('config/kestrel/shell.json'))
+assertEqual(config.barStyle, 'kestrel', 'the shipped bar style is the Kestrel bar')
 const shellQml = read('shell/shell.qml')
-assert(!/plugins\/bar\/orpheus/.test(shellQml), 'the live shell does not mount Orpheus yet')
+assert(/shellConfig\.barStyle === "orpheus" \? "orpheus" : "kestrel"/.test(shellQml),
+  'an unknown bar style falls back to the Kestrel bar')
+assert(/source: "plugins\/bar\/orpheus\/Scene\.qml"/.test(shellQml), 'selecting Orpheus mounts its scene')
+assert(/active: shell\.barStyle !== "orpheus" && shell\.activeBarId === shell\.defaultBarId/.test(shellQml),
+  'the quattro bar is unmounted while Orpheus runs')
 JS

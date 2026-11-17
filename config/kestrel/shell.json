@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "barStyle": "kestrel",
   "idle": {
     "screensaver": 150,
     "lock": 300

@@ -59,6 +59,11 @@ ShellRoot {
 
   property var defaultsConfig: builtinShellConfig
   property var shellConfig: builtinShellConfig
+
+  // Which bar the desktop mounts: the Kestrel quattro bar (default) or the
+  // vendored Orpheus product. Opt-in until Orpheus has been proven in the VM;
+  // an unknown value keeps the shipped bar.
+  readonly property string barStyle: shellConfig && shellConfig.barStyle === "orpheus" ? "orpheus" : "kestrel"
   property bool pluginReloading: false
   property bool pluginReloadPending: false
 
@@ -242,10 +247,27 @@ ShellRoot {
     }
   }
 
+  // Orpheus draws its own bar per monitor (its Scene owns the layer windows),
+  // so it is mounted once per screen instead of through the single bar Loader.
+  Component {
+    id: orpheusBarComponent
+
+    Loader {
+      required property var modelData
+      source: "plugins/bar/orpheus/Scene.qml"
+      onLoaded: if (item) item.modelData = modelData
+    }
+  }
+
+  Variants {
+    model: shell.barStyle === "orpheus" ? Quickshell.screens : []
+    delegate: orpheusBarComponent
+  }
+
   Loader {
     id: defaultBarLoader
 
-    active: shell.activeBarId === shell.defaultBarId
+    active: shell.barStyle !== "orpheus" && shell.activeBarId === shell.defaultBarId
     sourceComponent: defaultBarComponent
     onLoaded: shell.configureBar(item, shell.barManifestFor(shell.defaultBarId))
     onActiveChanged: if (!active && shell.activeBarId !== shell.defaultBarId) shell.bar = null

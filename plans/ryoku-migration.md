@@ -100,11 +100,16 @@ Status: in progress. Revision 2 — decisions taken.
       `orpheus/services` — the adapter singletons the scene binds to, resolved
       against `qs.Commons`/Quickshell (Weather/Battery/Audio/Tray/… are silent
       adapters until the Kestrel services expose them).
-- [ ] Still unresolved before mounting: `import shell.modules.stage.frame`
-      (Frame.qml/Scene.qml) and `import shell.modules.phone` (Phone page);
-      vendor or strip those, then add the `barStyle` host switch.
-      Covered by test/shell.d/orpheus-vendored-test.sh (asserts the tree is
-      inert and no file still imports Ryoku's shell modules it replaced).
+- [x] Stage framing replaced by a local `stageframe` shim (never frames a
+      monitor), the Stage-only `Frame.qml` and the phone page/registry entry
+      removed, so the vendored tree has no Ryoku-module imports left.
+- [x] `barStyle` host switch: `config/kestrel/shell.json` defaults to
+      `"kestrel"`; selecting `"orpheus"` mounts `Scene.qml` once per screen and
+      unmounts the quattro bar. Any other value keeps the Kestrel bar.
+- [ ] Before flipping the default: port `settings/Prefs.qml` persistence (it
+      writes through `ryoku-shell.sock`, which does not exist on Kestrel) and
+      give the silent adapters real data (Weather/Battery/Audio/Tray/…), then
+      validate in the VM.
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
       bar widget contract available for existing plugins.
 - [ ] Port Kestrel-only widgets (agents, vault) into Orpheus' widget registry.

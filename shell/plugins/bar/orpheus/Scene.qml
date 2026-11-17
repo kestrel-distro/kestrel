@@ -6,7 +6,7 @@ import Quickshell.Wayland
 import Ryoku.Blobs
 import Ryoku.Ui.Singletons
 import "services"
-import shell.modules.stage.frame
+import "stageframe"
 import "Metrics.js" as M
 import "components" as C
 import "kit" as K
