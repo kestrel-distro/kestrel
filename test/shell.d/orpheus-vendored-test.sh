@@ -79,6 +79,19 @@ assert(/defaultAudioSink/.test(audio) && /preferredDefaultAudioSink/.test(audio)
 const tray = read(`${base}/services/Tray.qml`)
 assert(/import Quickshell\.Services\.SystemTray/.test(tray), 'Tray reads the system tray')
 assert(/service: it/.test(tray) && /function activate/.test(tray), 'Tray wraps items and activates them')
+const weather = read(`${base}/services/Weather.qml`)
+assert(/wttr\.in/.test(weather) && /current_condition/.test(weather), 'Weather fetches wttr.in and parses it')
+for (const key of ['hourly', 'daily', 'current', 'available', 'city']) {
+  assert(new RegExp('property var ' + key + '\\b|property (bool|string) ' + key + '\\b').test(weather) || weather.includes(key + ':'),
+    `Weather exposes ${key}`)
+}
+const updates = read(`${base}/services/Updates.qml`)
+assert(/checkupdates/.test(updates) && /property int pending/.test(updates), 'Updates counts pending packages')
+const power = read(`${base}/services/Power.qml`)
+assert(/PowerProfiles\.profile/.test(power), 'Power reads the active profile')
+const devices = read(`${base}/services/Devices.qml`)
+assert(/class\/backlight/.test(devices) && /kestrel-brightness-display/.test(devices),
+  'Devices reads the backlight and writes through the brightness command')
 assert(/source: "plugins\/bar\/orpheus\/Scene\.qml"/.test(shellQml), 'selecting Orpheus mounts its scene')
 assert(/active: shell\.barStyle !== "orpheus" && shell\.activeBarId === shell\.defaultBarId/.test(shellQml),
   'the quattro bar is unmounted while Orpheus runs')

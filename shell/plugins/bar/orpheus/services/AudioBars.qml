@@ -1,8 +1,10 @@
 pragma Singleton
 import QtQuick
-// Adapter: the live audio spectrum for the liquid wave. Silent until the audio
-// service exposes levels, so the bar lies flat rather than guessing.
+
+// Adapter: the live audio spectrum behind the liquid wave. Kestrel has no
+// spectrum provider (the visualiser is a separate surface), so the levels stay
+// empty and the bar's edge lies flat and still rather than inventing motion.
 QtObject {
   readonly property var levels: []
-  function setActive(v) {}
+  function setActive(active) {}
 }
