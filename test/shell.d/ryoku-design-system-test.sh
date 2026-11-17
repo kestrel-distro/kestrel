@@ -26,6 +26,22 @@ for (const token of ['paper', 'paperLift', 'ink', 'inkDim', 'bone', 'inkOnBone',
 assert(/function role\(/.test(tokens) && /namedScheme/.test(tokens) && /matchWallpaper/.test(tokens),
   'Tokens resolves a named scheme, then the live wallpaper palette, then the default')
 
+// The qs.Commons bridge gives every surface the design vocabulary without a
+// second palette: Tokens derives paper/ink/bone/line/tint from Color and Style.
+const commons = read('shell/Commons/qmldir')
+assert(/^singleton Tokens 1\.0 Tokens\.qml$/m.test(commons), 'qs.Commons registers Tokens')
+const bridge = read('shell/Commons/Tokens.qml')
+for (const token of ['paper', 'paperLift', 'light', 'ink', 'inkDim', 'inkMuted',
+                     'inkFaint', 'bone', 'inkOnBone', 'line', 'lineSoft', 'tint5',
+                     'sun', 'alert', 'radius', 'monoFamily', 'reduceMotion']) {
+  assert(new RegExp(`property (color|int|real|bool|string) ${token}\\b`).test(bridge),
+    `qs.Commons Tokens exposes ${token}`)
+}
+assert(/readonly property color paper: Color\.background/.test(bridge) &&
+  /readonly property color ink: Color\.foreground/.test(bridge),
+  'qs.Commons Tokens resolves the palette instead of holding hex')
+assert(/0\.299 \* paper\.r/.test(bridge), 'qs.Commons Tokens derives the light flag from the paper')
+
 // Theme fonts: the template documents the keys, Style parses them and exposes
 // them with a session-font fallback.
 const tpl = read('default/themed/shell.toml.tpl')
