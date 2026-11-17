@@ -45,17 +45,19 @@ assert(/0\.299 \* paper\.r/.test(bridge), 'qs.Commons Tokens derives the light f
 // Theme fonts: the template documents the keys, Style parses them and exposes
 // them with a session-font fallback.
 const tpl = read('default/themed/shell.toml.tpl')
-for (const key of ['display-family', 'mono-family', 'jp-family']) {
+for (const key of ['family', 'display-family', 'mono-family', 'jp-family']) {
   assert(new RegExp(`#?\\s*${key}\\s*=`).test(tpl),
     `shell.toml documents [font] ${key}`)
 }
 const style = read('shell/Commons/Style.qml')
-for (const key of ['display-family', 'mono-family', 'jp-family']) {
+for (const key of ['family', 'display-family', 'mono-family', 'jp-family']) {
   assert(style.includes(`"${key}"`), `Style parses [font] ${key}`)
 }
 for (const prop of ['displayFamily', 'monoFamily', 'jpFamily']) {
   assert(style.includes(`property string ${prop}:`), `Style.font exposes ${prop}`)
 }
+assert(/uiFamilyOverride\.length > 0 \? root\.uiFamilyOverride : root\.fontFamily/.test(style),
+  'the UI family follows the theme voice, else the session font')
 assert(/displayFamilyOverride\.length > 0 \? root\.displayFamilyOverride : root\.fontFamily/.test(style),
   'an unset family falls back to the session font')
 

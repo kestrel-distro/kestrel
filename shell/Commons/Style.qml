@@ -284,6 +284,7 @@ QtObject {
   // Optional per-theme families. Empty means "follow fontFamily", so a user
   // who picks a system font still owns the shell; a theme that wants a
   // distinct display or mono face sets these in its shell.toml.
+  property string uiFamilyOverride: ""
   property string displayFamilyOverride: ""
   property string monoFamilyOverride: ""
   property string jpFamilyOverride: ""
@@ -323,11 +324,12 @@ QtObject {
   // value falls back to the shared fontconfig alias.
   readonly property string menuFontFamily: {
     var override = Quickshell.env("KESTREL_MENU_FONT")
-    return (override && override.length > 0) ? override : fontFamily
+    if (override && override.length > 0) return override
+    return root.uiFamilyOverride.length > 0 ? root.uiFamilyOverride : fontFamily
   }
 
   readonly property QtObject font: QtObject {
-    readonly property string family: root.fontFamily
+    readonly property string family: root.uiFamilyOverride.length > 0 ? root.uiFamilyOverride : root.fontFamily
     readonly property string resolvedFamily: root.resolvedFontFamily
     readonly property string menuFamily: root.menuFontFamily
     // The display face carries headlines and poster titles; mono carries
@@ -423,7 +425,7 @@ QtObject {
       var key = fullKey.substr(dot + 1)
       var raw = v[fullKey]
       if (section === "font") {
-        if (key === "display-family" || key === "mono-family" || key === "jp-family") {
+        if (key === "family" || key === "display-family" || key === "mono-family" || key === "jp-family") {
           fontFamilyOut[key] = String(raw)
           continue
         }
@@ -462,6 +464,7 @@ QtObject {
     spacingScaleWithFont = nextSpacingScaleWithFont
     fontBaseSize = nextBase
     fontOverrides = fontOut
+    uiFamilyOverride = fontFamilyOut["family"] || ""
     displayFamilyOverride = fontFamilyOut["display-family"] || ""
     monoFamilyOverride = fontFamilyOut["mono-family"] || ""
     jpFamilyOverride = fontFamilyOut["jp-family"] || ""

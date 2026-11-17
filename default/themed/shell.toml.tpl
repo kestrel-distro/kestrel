@@ -104,11 +104,12 @@ scale-with-font = true
 # heading ≈ base * 1.333). The shell only floors this at 1px; increase it
 # as much as you want.
 base-size = 12
-# Family overrides. The shipped defaults are the design's three voices:
-# Fraunces carries headlines and poster titles, Space Mono carries data,
-# keycaps and code, Noto Sans CJK JP carries kanji glosses. Remove or replace
-# any line to follow the session font (shell.json fontFamily / `kestrel font
-# set`) or to give the theme a different voice.
+# Family overrides. The shipped defaults are the design's voices: Space
+# Grotesk carries the language, Fraunces the headlines and poster titles,
+# Space Mono the data, keycaps and code, Noto Sans CJK JP the kanji glosses.
+# Remove or replace any line to follow the session font (shell.json
+# fontFamily / `kestrel font set`) or to give the theme a different voice.
+family         = "Space Grotesk"
 display-family = "Fraunces"
 mono-family    = "SpaceMono Nerd Font"
 jp-family      = "Noto Sans CJK JP"
