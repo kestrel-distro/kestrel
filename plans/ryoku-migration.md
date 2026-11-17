@@ -90,13 +90,11 @@ Status: in progress. Revision 2 — decisions taken.
       acceptance in the VM.
 
 ### D. Orpheus bar (copy)
-- [ ] Vendor `ryoku/shell/plugin` (`Ryoku.Blobs`, C++ QML plugin: BlobRect,
-      BlobWave, BlobGroup, shaders) and add it to the ISO/package build.
-      Blocker: it is a Qt6 CMake module (Concurrent, Quick, ShaderTools,
-      Multimedia, Quick3D) whose shaders are baked with qt_add_shaders, so it
-      must be built on the package/ISO build host and shipped prebuilt under a
-      QML import path; the dev workstation lacks Qt6 Quick3D, so this cannot be
-      built or validated from the checkout alone.
+- [x] `Ryoku.Blobs` vendored (`ryoku-blobs/`): the Orpheus types only
+      (BlobGroup/BlobRect/BlobWave/BlobInvertedRect + the blob material), so it
+      builds with Qt Quick + ShaderTools, no Quick3D/Multimedia. It compiles and
+      imports cleanly here; `packaging/build-ryoku-blobs.sh` builds and installs
+      it into `<prefix>/shell/Ryoku/Blobs` on the package/ISO host.
 - [ ] Vendor `modules/bar` + `barstyles/orpheus` and the shared bar services
       it reads (media, battery, workspaces, tray).
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
