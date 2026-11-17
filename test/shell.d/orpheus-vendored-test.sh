@@ -67,6 +67,18 @@ assert(/Config\.path/.test(prefs), 'the writer targets the adapter path')
 const configAdapter = read(`${base}/services/Config.qml`)
 assert(/kestrel\/orpheus\.json/.test(configAdapter), 'the adapter owns ~/.config/kestrel/orpheus.json')
 assert(/property var orpheus/.test(configAdapter) && /FileView/.test(configAdapter), 'the adapter loads the product file')
+
+// Real data where Kestrel already has a source: UPower, PipeWire and the
+// system tray, the same providers the panels read.
+const battery = read(`${base}/services/Battery.qml`)
+assert(/import Quickshell\.Services\.UPower/.test(battery), 'Battery reads UPower')
+assert(/timeToEmpty/.test(battery) && /timeStr/.test(battery), 'Battery reports a time string')
+const audio = read(`${base}/services/Audio.qml`)
+assert(/import Quickshell\.Services\.Pipewire/.test(audio), 'Audio reads PipeWire')
+assert(/defaultAudioSink/.test(audio) && /preferredDefaultAudioSink/.test(audio), 'Audio exposes and sets the default sink')
+const tray = read(`${base}/services/Tray.qml`)
+assert(/import Quickshell\.Services\.SystemTray/.test(tray), 'Tray reads the system tray')
+assert(/service: it/.test(tray) && /function activate/.test(tray), 'Tray wraps items and activates them')
 assert(/source: "plugins\/bar\/orpheus\/Scene\.qml"/.test(shellQml), 'selecting Orpheus mounts its scene')
 assert(/active: shell\.barStyle !== "orpheus" && shell\.activeBarId === shell\.defaultBarId/.test(shellQml),
   'the quattro bar is unmounted while Orpheus runs')

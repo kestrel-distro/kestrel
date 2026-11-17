@@ -109,9 +109,13 @@ Status: in progress. Revision 2 — decisions taken.
 - [x] Orpheus settings persist without Ryoku's daemon: `Prefs` patches
       `~/.config/kestrel/orpheus.json` with jq through a serialized writer, and
       `services/Config.qml` loads that file.
-- [ ] Before flipping the default: give the silent adapters real data
-      (Weather/Battery/Audio/AudioBars/Tray/Devices/Updates/Holidays/Power/
-      Notifications), then validate in the VM.
+- [x] Adapters with a Kestrel source are real now: Battery (UPower, including
+      the time string), Audio (PipeWire default sink/source + node lists),
+      Tray (Quickshell system tray, wrapped in the product's item shape).
+- [ ] Still silent, pending a source or a decision: Weather, AudioBars,
+      Devices, Updates, Holidays, Power, Notifications. Tray context menus are
+      not modelled (the card falls back to its item list).
+- [ ] Validate in the VM, then flip the default to "orpheus".
 - [ ] Swap the default bar host to the Orpheus scene while keeping Kestrel's
       bar widget contract available for existing plugins.
 - [ ] Port Kestrel-only widgets (agents, vault) into Orpheus' widget registry.
