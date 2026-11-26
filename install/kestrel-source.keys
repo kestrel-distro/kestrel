@@ -1,0 +1,8 @@
+# PGP keys the source-package build must trust, one key id per line.
+#
+# A repository's release tarball is verified by makepkg in builduser's keyring;
+# a key the base image does not carry fails the build even though the recipe and
+# signature are valid. Import only upstream release keys here.
+#
+# trustsight (github.com/emiliano-go/trustsight) release signing key.
+5CC3B4C50D37E793
