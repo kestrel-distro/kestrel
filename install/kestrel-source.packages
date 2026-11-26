@@ -4,7 +4,7 @@
 # The repository's local PKGBUILD (packaging/local/PKGBUILD) builds the
 # checked-out tree; the result is published to the build-time repository and
 # installed into the live rootfs like any other package.
-trustsight=https://github.com/emiliano-go/trustsight
+trustsight=https://github.com/emiliano-go/trustsight#packaging/aur
 linux-kestrel=https://github.com/kestrel-distro/kernel
 
 # Matched desktop library closure (E2) and the explicit-sync qtbase (E4,
