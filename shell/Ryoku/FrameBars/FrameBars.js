@@ -46,8 +46,15 @@ function defaultConfig(menuCatalog) {
         version: 1,
         style: "slate-frame",
         rails: {
-            top: { enabled: false, size: 32, reveal: true, start: [], center: [], end: [] },
-            left: { enabled: true, size: 48, reveal: true, top: ["quick-settings", "workspaces"], center: ["dock"], bottom: ["recording", "tray", "audio-input", "audio-output", "bluetooth", "network", "clock", "battery"] },
+            top: {
+                enabled: true,
+                size: 34,
+                reveal: true,
+                start: ["quick-settings", "workspaces"],
+                center: ["music", "clock", "sysmon"],
+                end: ["tray", "network", "bluetooth", "audio-output", "battery"]
+            },
+            left: { enabled: false, size: 48, reveal: true, top: [], center: [], bottom: [] },
             bottom: { enabled: false, size: 32, reveal: true, start: [], center: [], end: [] },
             right: { enabled: false, size: 48, reveal: true, top: [], center: [], bottom: [] }
         },

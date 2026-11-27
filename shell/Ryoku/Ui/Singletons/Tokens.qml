@@ -103,8 +103,8 @@ Singleton {
 
     // ── type ─────────────────────────────────────────────────────────────
     readonly property string display: "Fraunces"
-    property string ui: "Space Grotesk"
-    property string mono: "SpaceMono Nerd Font"
+    property string ui: "CaskaydiaMono Nerd Font Mono"
+    property string mono: "CaskaydiaMono Nerd Font Mono"
     readonly property string jp: "Noto Sans CJK JP"
 
     // ── chrome ───────────────────────────────────────────────────────────
