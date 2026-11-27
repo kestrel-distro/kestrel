@@ -110,7 +110,7 @@ base-size = 12
 # Remove or replace any line to follow the session font (shell.json
 # fontFamily / `kestrel font set`) or to give the theme a different voice.
 family         = "Space Grotesk"
-display-family = "Fraunces"
+display-family = "Fraunces 72pt"
 mono-family    = "SpaceMono Nerd Font"
 jp-family      = "Noto Sans CJK JP"
 # Per-token overrides, in px. Uncomment any to pin a specific size without
