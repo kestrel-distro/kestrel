@@ -36,7 +36,15 @@ Item {
     // Kestrel port: the wallpaper daemon is not shipped, so a still from the
     // theme stands in when no frame has arrived.
     property string stillText: ""
-    readonly property string stillPath: stillText.trim()
+    // A fresh session has no saved wallpaper; fall back to the theme's own
+    // picture so the desktop opens on something instead of black.
+    readonly property string builtInStill: "/usr/share/kestrel/themes/current/backgrounds"
+    readonly property string stillPath: {
+        const saved = stillText.trim();
+        if (saved.length > 0)
+            return saved;
+        return "/usr/share/kestrel/themes/titan-black/backgrounds/0-titan.jpg";
+    }
     readonly property string wallpaperPath: frame.path.length > 0 ? frame.path : stillPath
     readonly property string wallpaperUrl: wallpaperPath.length > 0
         ? "file://" + wallpaperPath + "?v=" + frame.revision + (frame.path.length > 0 ? "" : "-still") : ""
