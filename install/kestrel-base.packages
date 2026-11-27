@@ -101,7 +101,7 @@ python-poetry-core
 qemu-user-static-binfmt
 qrencode
 qt6-base
-qt6-declarative
+qt6-declarative=6.12.0-4
 qt6-imageformats
 qt6-multimedia
 qt6-svg
