@@ -353,8 +353,8 @@ Singleton {
             id: adapter
             property bool frameEnabled: true
             property real frameOpacity: 1
-            property real frameThickness: 2
-            property real frameCorner: 8
+            property real frameThickness: 0
+            property real frameCorner: 0
             property real osdRadius: 0
             property real osdOpacity: 1
             property bool deckFrostEnabled: true
