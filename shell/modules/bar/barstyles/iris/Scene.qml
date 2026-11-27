@@ -13,11 +13,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import inir
-import inir.modules.common
-import inir.modules.iris
-import inir.modules.iris.critical
-import inir.services
-import inir.services.deferred
+import "../../../../inir/modules/common"
+import "../../../../inir/modules/iris"
+import "../../../../inir/modules/iris/critical"
+import "../../../../inir/services"
+import "../../../../inir/services/deferred"
 import "../../../../services" as Ryoku
 import "../../../../services/lib/screens.js" as Screens
 

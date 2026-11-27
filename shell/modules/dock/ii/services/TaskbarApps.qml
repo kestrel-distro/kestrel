@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import "../../../../stage/services"
-import inir.services as InirServices
+import "../../../../inir/services" as InirServices
 import ".."
 import "../../../../Ryoku/Ui/Singletons" as RyokuUi
 

@@ -3,7 +3,7 @@ import QtQuick
 import ".."
 import "../Singletons"
 import "../../../Ryoku/Ui/Singletons"
-import inir.modules.common as Inir
+import "../../../inir/modules/common" as Inir
 
 // Right-click options for the vendored iRiS "Image converter" canvas widget. It
 // converts images dropped onto it; its one setting is the output format, written

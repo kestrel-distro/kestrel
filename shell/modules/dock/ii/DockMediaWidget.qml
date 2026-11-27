@@ -11,7 +11,7 @@ import "../../../stage/modules/common/functions"
 import "../../../stage/modules/common/widgets"
 import "../../../stage/services"
 import "../../../stage/modules/common/models"
-import inir.services as InirServices
+import "../../../inir/services" as InirServices
 import "./widgets"
 import "."
 

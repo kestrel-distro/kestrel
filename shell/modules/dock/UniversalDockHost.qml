@@ -3,7 +3,7 @@ import "../../services"
 import "../stage/Singletons" as StageCfg
 import "../../stage" as Stage
 import "../bar/barstyles/python/dock" as PythonDock
-import inir.modules.iris.dock as ShimaDock
+import "../../inir/modules/iris/dock" as ShimaDock
 Item {
     id: root
 

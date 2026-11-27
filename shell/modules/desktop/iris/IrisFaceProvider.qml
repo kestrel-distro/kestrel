@@ -1,21 +1,21 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import inir.modules.background.widgets.clock
-import inir.modules.background.widgets.weather
-import inir.modules.background.widgets.mediaControls
-import inir.modules.background.widgets.controls
-import inir.modules.background.widgets.calendar
-import inir.modules.background.widgets.todo
-import inir.modules.background.widgets.notes
-import inir.modules.background.widgets.timers
-import inir.modules.background.widgets.screenTime
-import inir.modules.background.widgets.systemMonitor
-import inir.modules.background.widgets.battery
-import inir.modules.background.widgets.worldClock
-import inir.modules.background.widgets.dateBadge
-import inir.modules.background.widgets.userCard
-import inir.modules.background.widgets.uptime
-import inir.modules.background.widgets.newsTicker
+import "../../../inir/modules/background/widgets/clock"
+import "../../../inir/modules/background/widgets/weather"
+import "../../../inir/modules/background/widgets/mediaControls"
+import "../../../inir/modules/background/widgets/controls"
+import "../../../inir/modules/background/widgets/calendar"
+import "../../../inir/modules/background/widgets/todo"
+import "../../../inir/modules/background/widgets/notes"
+import "../../../inir/modules/background/widgets/timers"
+import "../../../inir/modules/background/widgets/screenTime"
+import "../../../inir/modules/background/widgets/systemMonitor"
+import "../../../inir/modules/background/widgets/battery"
+import "../../../inir/modules/background/widgets/worldClock"
+import "../../../inir/modules/background/widgets/dateBadge"
+import "../../../inir/modules/background/widgets/userCard"
+import "../../../inir/modules/background/widgets/uptime"
+import "../../../inir/modules/background/widgets/newsTicker"
 
 // Hidden host for one vendored iRiS background widget. It builds the concrete
 // AbstractBackgroundWidget subclass purely as a data + face source: the widget

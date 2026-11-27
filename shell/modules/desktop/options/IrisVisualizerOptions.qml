@@ -3,7 +3,7 @@ import QtQuick
 import ".."
 import "../Singletons"
 import "../../../Ryoku/Ui/Singletons"
-import inir.modules.common as Inir
+import "../../../inir/modules/common" as Inir
 import "../iris/IrisRoster.js" as IrisRoster
 
 // Options for the vendored iRiS Visualizer canvas widget. Its config lives in the

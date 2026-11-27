@@ -3,7 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import inir.services as InirServices
+import "../inir/services" as InirServices
 import "../Ryoku/Ui/Singletons"
 import "../services"
 import "lib/dock.js" as DockList

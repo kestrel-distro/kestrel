@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import inir.services as InirServices
+import "../../inir/services" as InirServices
 
 Singleton {
     id: root

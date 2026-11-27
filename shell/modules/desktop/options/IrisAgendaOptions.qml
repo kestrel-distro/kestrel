@@ -3,7 +3,7 @@ import QtQuick
 import ".."
 import "../Singletons"
 import "../../../Ryoku/Ui/Singletons"
-import inir.modules.common as Inir
+import "../../../inir/modules/common" as Inir
 import "../iris/IrisRoster.js" as IrisRoster
 
 // Face options for the vendored iRiS "Up next" (upcoming events) face.

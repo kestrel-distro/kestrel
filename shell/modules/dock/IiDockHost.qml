@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../../Ryoku/Ui/Singletons"
-import inir.modules.mediaControls as InirMedia
+import "../../inir/modules/mediaControls" as InirMedia
 import "../../stage/services" as StageServices
 import "../../stage" as Stage
 import "../../services"

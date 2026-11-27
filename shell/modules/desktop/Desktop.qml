@@ -37,8 +37,8 @@ import "../visualizer" as Viz
 import "../wallpaper" as WallpaperMod
 // The iRiS frame singleton reports the dock's edge and its visible vs reserved
 // depth, so the Edit widgets bar can clear a bottom dock that reserves nothing.
-import inir.modules.iris.frame
-import inir.services
+import "../../inir/modules/iris/frame"
+import "../../inir/services"
 
 // desktop widgets layer: WlrLayer.Bottom (below windows), instantiated once per
 // monitor by the main shell, carrying the clock. only clicks on bare wallpaper

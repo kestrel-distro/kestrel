@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import inir.modules.background.widgets
-import inir.modules.background.widgets.imageConverter
-import inir.modules.background.widgets.japaneseTypography
-import inir.modules.background.widgets.visualizer
+import "../../../inir/modules/background/widgets"
+import "../../../inir/modules/background/widgets/imageConverter"
+import "../../../inir/modules/background/widgets/japaneseTypography"
+import "../../../inir/modules/background/widgets/visualizer"
 
 // Visible host for one vendored iRiS CANVAS widget (the ones with no irisFace:
 // customImage, editorial, imageConverter, japaneseTypography,

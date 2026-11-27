@@ -3,8 +3,8 @@ import QtQuick
 import ".."
 import "../Singletons"
 import "../../../Ryoku/Ui/Singletons"
-import inir.modules.common as Inir
-import inir.modules.background.widgets.japaneseTypography as Jp
+import "../../../inir/modules/common" as Inir
+import "../../../inir/modules/background/widgets/japaneseTypography" as Jp
 
 // Right-click options for the vendored iRiS "Japanese type" canvas widget, in
 // Ryoku's menu idiom. Every control writes the widget's own inir config on the

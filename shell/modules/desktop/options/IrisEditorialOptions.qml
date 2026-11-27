@@ -3,7 +3,7 @@ import QtQuick
 import ".."
 import "../Singletons"
 import "../../../Ryoku/Ui/Singletons"
-import inir.modules.common as Inir
+import "../../../inir/modules/common" as Inir
 
 // Right-click options for the vendored iRiS "Editorial" canvas widget. Every
 // control writes the widget's own inir config on the daemon's single settings
