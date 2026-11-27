@@ -25,8 +25,8 @@ var entries = [
 
 var defaultLayout = {
     left: ["logo", "workspaces"],
-    center: ["voice"],
-    right: ["tray", "controls", "battery"]
+    center: ["keyboard", "media", "clock", "weather", "updates"],
+    right: ["sysmon", "activity", "ai", "vpn", "tray", "notifications", "battery", "power"]
 }
 
 function find(id) {
