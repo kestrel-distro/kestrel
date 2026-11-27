@@ -121,7 +121,7 @@ Singleton {
             form: "liquid",
             scale: 1,
             opacity: 0.94,
-            rim: true,
+            rim: false,
             autoHide: "off",
             hoverOpen: false,
             hoverSwitch: true,
