@@ -1,21 +1,21 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-import Quickshell.Widgets
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
 import "LauncherModel.js" as Model
 
-// The command palette, in the paper-and-ink language: one sheet of paper on a
-// dimmed desktop, a search line ruled off from the results, and a footer of key
-// hints set in micro caps. The chosen row is not tinted with colour; it is
-// inverted to bone, the language's only emphasis.
+// The command palette, set in the paper-and-ink language: a sheet with a small
+// masthead, one search line, a ruled result column, and micro-caps key hints.
+// The chosen row is not tinted with colour — it inverts to bone, which is the
+// language's only emphasis. Rules, ink and the inversion pair come from the
+// shared tokens, so a light theme stays legible and a dark one stays quiet.
 //
-// Apps come from the shell AppLibrary, so hidden entries, icons and the launch
-// path match the menu. Prefixes route the query: "=" calculates, "?" searches
-// the web, "/" lists actions; a bare query searches apps and falls back to the
-// action catalogue, then the web.
+// Apps come from the shell AppLibrary, matching the menu's hidden entries,
+// icons and launch path. Prefixes route: "=" calculates, "?" searches the web,
+// "/" lists actions; a bare query searches apps, then falls back to actions
+// and finally the web.
 Item {
   id: root
 
@@ -29,14 +29,13 @@ Item {
   property bool cursorActive: false
   property var rows: []
 
-  // Surfaces follow the theme's [launcher] section; the ink, rules and the
-  // inversion pair come from the shared design tokens.
+  // ---------------------------------------------------------------- surfaces
   property color background: Commons.Color.launcher.background
   property color foreground: Commons.Color.launcher.text
-  readonly property color cardBorder: Commons.Tokens.line
+  readonly property color rule: Commons.Tokens.lineSoft
+  readonly property color ruleStrong: Commons.Tokens.line
   readonly property color muted: Commons.Tokens.inkMuted
   readonly property color faint: Commons.Tokens.inkFaint
-  readonly property color rule: Commons.Tokens.lineSoft
   readonly property color chosenFill: Commons.Tokens.bone
   readonly property color chosenInk: Commons.Tokens.inkOnBone
   readonly property color chosenInkDim: Commons.Tokens.inkOnBoneDim
@@ -45,13 +44,35 @@ Item {
   readonly property string monoFamily: Commons.Tokens.monoFamily
   readonly property int radius: Commons.Tokens.radius
 
-  property int outerMargin: Style.spacing.panelPadding + Style.spacing.sm
-  property int rowHeight: Math.max(Style.space(46), Style.font.body + Style.spacing.rowPaddingX * 2)
-  property int searchHeight: Math.max(Style.space(56), Style.font.title + Style.spacing.rowPaddingX * 2)
-  readonly property int cardWidth: Math.min(Style.space(640), panel.width - outerMargin * 2)
+  // ---------------------------------------------------------------- geometry
+  readonly property int pad: Style.spacing.panelPadding + Style.spacing.md
+  readonly property int rowHeight: Style.space(52)
+  readonly property int searchHeight: Style.space(64)
+  readonly property int headerHeight: Style.space(44)
+  readonly property int groupHeight: Style.space(30)
+  readonly property int chipsHeight: root.query.length === 0 ? Style.space(38) : 0
+  readonly property int footerHeight: Style.space(44)
+  readonly property int cardWidth: Math.min(Style.space(680), panel.width - pad * 2)
   readonly property int visibleRows: Math.min(root.rows.length, 9)
-  readonly property int resultsHeight: root.rows.length > 0 ? visibleRows * rowHeight : 0
-  readonly property int cardHeight: outerMargin + searchHeight + 1 + (resultsHeight > 0 ? Style.spacing.sm + resultsHeight : 0) + Style.space(40) + outerMargin
+  readonly property int listHeight: root.rows.length > 0 ? root.visibleRows * rowHeight : 0
+  readonly property int cardHeight: pad * 2 + headerHeight + 1 + searchHeight + 1
+    + (root.rows.length > 0 ? groupHeight + listHeight : 0)
+    + chipsHeight + footerHeight
+
+  readonly property string groupLabel: {
+    if (root.query.length === 0) return "ACTIONS"
+    if (root.query.charAt(0) === "/") return "ACTIONS"
+    if (root.query.charAt(0) === "=") return "CALCULATION"
+    if (root.query.charAt(0) === "?") return "WEB"
+    if (/^[0-9(+-]/.test(root.query)) return "CALCULATION"
+    if (root.rows.length > 0 && root.rows[0].kind === "web") return "WEB"
+    return "APPLICATIONS"
+  }
+
+  readonly property real reveal: root.opened ? 1 : 0
+  Behavior on reveal {
+    NumberAnimation { duration: Style.duration(140); easing.type: Easing.OutCubic }
+  }
 
   function open(payloadJson) {
     root.query = ""
@@ -78,7 +99,8 @@ Item {
         id: String(entry.id || ""),
         name: library.entryName(entry),
         subtext: library.entrySubtext(entry),
-        icon: library.iconSource(entry.icon || "")
+        icon: library.iconSource(entry.icon || ""),
+        hint: ""
       })
     }
     return out
@@ -94,7 +116,8 @@ Item {
         name: actions[i].name,
         subtext: actions[i].subtext,
         icon: ((root.shell && root.shell.appLibrary) ? root.shell.appLibrary.iconSource(actions[i].icon || "") : ""),
-        command: actions[i].command
+        command: actions[i].command,
+        hint: "RUN"
       })
     }
     return out
@@ -103,13 +126,13 @@ Item {
   function calcRow(q) {
     var value = Model.calculate(q)
     if (!value) return null
-    return { kind: "calc", id: "calc", name: value, subtext: "Copy result", icon: "", payload: value }
+    return { kind: "calc", id: "calc", name: value, subtext: "Copy the result", icon: "", payload: value, hint: "COPY" }
   }
 
   function webRow(q) {
     var value = Model.webQuery(q)
     if (!value) return null
-    return { kind: "web", id: "web", name: value, subtext: "Search the web", icon: "", payload: value }
+    return { kind: "web", id: "web", name: value, subtext: "Search the web", icon: "", payload: value, hint: "WEB" }
   }
 
   function refresh() {
@@ -175,11 +198,8 @@ Item {
 
     Rectangle {
       anchors.fill: parent
-      color: Qt.rgba(0, 0, 0, 0.35)
-      opacity: root.opened ? 1 : 0
-      Behavior on opacity {
-        NumberAnimation { duration: Style.duration(120); easing.type: Easing.OutCubic }
-      }
+      color: Qt.rgba(0, 0, 0, 0.42)
+      opacity: root.reveal
     }
 
     MouseArea {
@@ -188,24 +208,29 @@ Item {
       onClicked: root.close()
     }
 
-    // The sheet itself: paper, one hairline, a ruled search line. No shadow, no
-    // accent border — depth is the rule, not a stroke around the card.
     Rectangle {
       id: card
       width: root.cardWidth
-      height: Math.min(root.cardHeight, panel.height - root.outerMargin * 2)
+      height: Math.min(root.cardHeight, panel.height - root.pad * 2)
       anchors.horizontalCenter: parent.horizontalCenter
-      y: Math.max(root.outerMargin, Math.round((panel.height - height) * 0.2))
-      radius: root.radius
+      y: Math.max(root.pad, Math.round((panel.height - height) * 0.2))
+      radius: root.radius + 2
       color: root.background
       border.width: 1
-      border.color: root.cardBorder
+      border.color: root.ruleStrong
+      opacity: root.reveal
+      scale: 0.985 + 0.015 * root.reveal
+      transformOrigin: Item.Top
+      Behavior on scale {
+        NumberAnimation { duration: Style.duration(140); easing.type: Easing.OutCubic }
+      }
 
       MouseArea { anchors.fill: parent; onClicked: {} }
 
       FocusScope {
         id: keyScope
         anchors.fill: parent
+        anchors.margins: root.pad
         focus: true
 
         Keys.onPressed: function(event) {
@@ -231,13 +256,74 @@ Item {
           }
         }
 
+        // ---------------------------------------------------------- masthead
+        Item {
+          id: header
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: parent.top
+          height: root.headerHeight
+
+          Text {
+            id: masthead
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Kestrel"
+            font.family: root.displayFamily
+            font.pixelSize: Style.font.heading
+            font.letterSpacing: 0.4
+            color: root.foreground
+          }
+
+          Text {
+            anchors.left: masthead.right
+            anchors.leftMargin: Style.spacing.sm
+            anchors.verticalCenter: parent.verticalCenter
+            text: "COMMAND PALETTE"
+            font.family: root.monoFamily
+            font.pixelSize: Math.max(9, Style.font.caption - 2)
+            font.letterSpacing: 1.6
+            color: root.faint
+          }
+
+          // Mode chip: the one place the surface names what the query will do.
+          Rectangle {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: Style.space(22)
+            width: mode.implicitWidth + Style.spacing.md * 2
+            radius: 3
+            color: "transparent"
+            border.width: 1
+            border.color: root.ruleStrong
+
+            Text {
+              id: mode
+              anchors.centerIn: parent
+              text: root.groupLabel
+              font.family: root.monoFamily
+              font.pixelSize: Math.max(9, Style.font.caption - 2)
+              font.letterSpacing: 1.4
+              color: root.muted
+            }
+          }
+        }
+
+        Rectangle {
+          id: topRule
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: header.bottom
+          height: 1
+          color: root.rule
+        }
+
+        // ------------------------------------------------------------ search
         Item {
           id: searchRow
           anchors.left: parent.left
           anchors.right: parent.right
-          anchors.top: parent.top
-          anchors.leftMargin: root.outerMargin
-          anchors.rightMargin: root.outerMargin
+          anchors.top: topRule.bottom
           height: root.searchHeight
 
           Image {
@@ -249,7 +335,7 @@ Item {
             source: Quickshell.iconPath("edit-find-symbolic", true)
             sourceSize.width: width
             sourceSize.height: height
-            opacity: 0.55
+            opacity: 0.6
           }
 
           TextInput {
@@ -262,8 +348,8 @@ Item {
             selectionColor: root.chosenFill
             selectedTextColor: root.chosenInk
             font.family: root.uiFamily
-            font.pixelSize: Style.font.title
-            font.letterSpacing: 0.2
+            font.pixelSize: Style.font.display
+            font.letterSpacing: 0.1
             clip: true
             focus: true
             text: root.query
@@ -292,25 +378,52 @@ Item {
         }
 
         Rectangle {
-          id: rule
+          id: bottomRule
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.top: searchRow.bottom
-          anchors.leftMargin: root.outerMargin
-          anchors.rightMargin: root.outerMargin
           height: 1
           color: root.rule
+        }
+
+        // ------------------------------------------------------------ results
+        Item {
+          id: groupHeader
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: bottomRule.bottom
+          height: root.groupHeight
+          visible: root.rows.length > 0
+
+          Text {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Style.spacing.xs
+            text: root.groupLabel
+            font.family: root.monoFamily
+            font.pixelSize: Math.max(9, Style.font.caption - 2)
+            font.letterSpacing: 1.5
+            color: root.faint
+          }
+
+          Text {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Style.spacing.xs
+            text: root.rows.length + (root.rows.length === 1 ? " ENTRY" : " ENTRIES")
+            font.family: root.monoFamily
+            font.pixelSize: Math.max(9, Style.font.caption - 2)
+            font.letterSpacing: 1.2
+            color: root.faint
+          }
         }
 
         ListView {
           id: resultList
           anchors.left: parent.left
           anchors.right: parent.right
-          anchors.top: rule.bottom
-          anchors.topMargin: root.rows.length > 0 ? Style.spacing.sm : 0
-          anchors.leftMargin: root.outerMargin
-          anchors.rightMargin: root.outerMargin
-          height: root.resultsHeight
+          anchors.top: groupHeader.bottom
+          height: root.listHeight
           visible: root.rows.length > 0
           clip: true
           interactive: true
@@ -324,16 +437,10 @@ Item {
             required property var modelData
             width: ListView.view.width
             height: root.rowHeight
-            radius: Math.min(root.radius, Style.space(4))
-            color: "transparent"
+            radius: Math.min(root.radius, Style.space(5))
+            color: row.chosen ? root.chosenFill : "transparent"
 
             readonly property bool chosen: index === root.selectedIndex && root.cursorActive
-
-            Rectangle {
-              anchors.fill: parent
-              radius: parent.radius
-              color: row.chosen ? root.chosenFill : "transparent"
-            }
 
             MouseArea {
               anchors.fill: parent
@@ -348,7 +455,7 @@ Item {
             Image {
               id: rowIcon
               anchors.left: parent.left
-              anchors.leftMargin: Style.spacing.sm
+              anchors.leftMargin: Style.spacing.md
               anchors.verticalCenter: parent.verticalCenter
               width: Style.font.iconLarge
               height: width
@@ -359,35 +466,109 @@ Item {
               smooth: true
             }
 
-            Text {
-              id: rowName
+            Column {
               anchors.left: rowIcon.visible ? rowIcon.right : parent.left
-              anchors.leftMargin: rowIcon.visible ? Style.spacing.md : Style.spacing.sm
-              anchors.right: parent.right
-              anchors.rightMargin: Style.spacing.sm
+              anchors.leftMargin: rowIcon.visible ? Style.spacing.lg : Style.spacing.md
+              anchors.right: rowHint.left
+              anchors.rightMargin: Style.spacing.md
               anchors.verticalCenter: parent.verticalCenter
-              anchors.verticalCenterOffset: row.modelData.subtext.length > 0 ? -Style.font.caption * 0.45 : 0
-              text: row.modelData.name
-              elide: Text.ElideRight
-              font.family: root.uiFamily
-              font.pixelSize: Style.font.title
-              color: row.chosen ? root.chosenInk : root.foreground
+              spacing: 2
+
+              Text {
+                width: parent.width
+                text: row.modelData.name
+                elide: Text.ElideRight
+                font.family: root.uiFamily
+                font.pixelSize: Style.font.title
+                color: row.chosen ? root.chosenInk : root.foreground
+              }
+
+              Text {
+                width: parent.width
+                visible: row.modelData.subtext.length > 0
+                text: row.modelData.subtext
+                elide: Text.ElideRight
+                font.family: root.monoFamily
+                font.pixelSize: Math.max(9, Style.font.caption - 1)
+                font.letterSpacing: 0.4
+                color: row.chosen ? root.chosenInkDim : root.muted
+              }
             }
 
             Text {
-              anchors.left: rowName.left
-              anchors.right: rowName.right
-              anchors.top: rowName.bottom
-              anchors.topMargin: 1
-              visible: row.modelData.subtext.length > 0
-              text: row.modelData.subtext
-              elide: Text.ElideRight
+              id: rowHint
+              anchors.right: parent.right
+              anchors.rightMargin: Style.spacing.md
+              anchors.verticalCenter: parent.verticalCenter
+              text: row.chosen ? "↵" : (row.modelData.hint || "")
               font.family: root.monoFamily
               font.pixelSize: Math.max(9, Style.font.caption - 1)
-              font.letterSpacing: 0.3
-              color: row.chosen ? root.chosenInkDim : root.muted
+              font.letterSpacing: 1.2
+              color: row.chosen ? root.chosenInkDim : root.faint
             }
           }
+        }
+
+        // ------------------------------------------------------------- chips
+        Item {
+          id: chips
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: resultList.visible ? resultList.bottom : bottomRule.bottom
+          height: root.chipsHeight
+          visible: root.chipsHeight > 0
+
+          Row {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.spacing.sm
+
+            Repeater {
+              model: [
+                { label: "= 12*3", fill: "=12*3" },
+                { label: "/ lock", fill: "/lock" },
+                { label: "? wayland", fill: "? wayland" }
+              ]
+
+              delegate: Rectangle {
+                required property var modelData
+                height: Style.space(24)
+                width: chipText.implicitWidth + Style.spacing.md * 2
+                radius: 3
+                color: Commons.Tokens.tint5
+                border.width: 1
+                border.color: root.rule
+
+                Text {
+                  id: chipText
+                  anchors.centerIn: parent
+                  text: modelData.label
+                  font.family: root.monoFamily
+                  font.pixelSize: Math.max(9, Style.font.caption - 2)
+                  font.letterSpacing: 0.8
+                  color: root.muted
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.query = modelData.fill
+                    searchInput.forceActiveFocus()
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // ------------------------------------------------------------ footer
+        Rectangle {
+          id: footRule
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: footer.top
+          height: 1
+          color: root.rule
         }
 
         Item {
@@ -395,31 +576,62 @@ Item {
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.bottom: parent.bottom
-          anchors.leftMargin: root.outerMargin
-          anchors.rightMargin: root.outerMargin
-          height: Style.space(40)
+          height: root.footerHeight
 
           Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: {
-              if (root.rows.length === 0) return root.query.length > 0 ? "NO MATCHES" : "TYPE TO SEARCH"
-              return root.rows.length + (root.rows.length === 1 ? " RESULT" : " RESULTS")
-            }
+            text: root.rows.length === 0 && root.query.length > 0 ? "NO MATCHES" : "KESTREL"
             font.family: root.monoFamily
             font.pixelSize: Math.max(9, Style.font.caption - 2)
-            font.letterSpacing: 1.3
+            font.letterSpacing: 1.4
             color: root.faint
           }
 
-          Text {
+          Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: "↑↓ MOVE   ENTER OPEN   ESC CLOSE"
-            font.family: root.monoFamily
-            font.pixelSize: Math.max(9, Style.font.caption - 2)
-            font.letterSpacing: 1.1
-            color: root.faint
+            spacing: Style.spacing.md
+
+            Repeater {
+              model: [
+                { key: "↑↓", label: "MOVE" },
+                { key: "↵", label: "OPEN" },
+                { key: "ESC", label: "CLOSE" }
+              ]
+
+              delegate: Row {
+                required property var modelData
+                spacing: Style.spacing.xs
+
+                Rectangle {
+                  height: Style.space(20)
+                  width: keyLabel.implicitWidth + Style.spacing.sm * 2
+                  radius: 3
+                  color: Commons.Tokens.tint5
+                  border.width: 1
+                  border.color: root.rule
+
+                  Text {
+                    id: keyLabel
+                    anchors.centerIn: parent
+                    text: modelData.key
+                    font.family: root.monoFamily
+                    font.pixelSize: Math.max(9, Style.font.caption - 2)
+                    color: root.muted
+                  }
+                }
+
+                Text {
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: modelData.label
+                  font.family: root.monoFamily
+                  font.pixelSize: Math.max(9, Style.font.caption - 2)
+                  font.letterSpacing: 1.1
+                  color: root.faint
+                }
+              }
+            }
           }
         }
       }
