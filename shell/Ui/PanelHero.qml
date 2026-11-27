@@ -1,6 +1,5 @@
-import QtQuick
+import QtQuick 6.11
 import qs.Commons
-import qs.Commons as Commons
 
 Item {
   id: root
@@ -9,13 +8,13 @@ Item {
   property string title: ""
   property string meta: ""
   property string detail: ""
-  property color foreground: Commons.Color.foreground
+  property color foreground: Color.foreground
   property string fontFamily: Style.font.family
   property real iconSize: Style.font.display
   property real iconOpacity: 1.0
   property alias metaOpacity: metaText.opacity
 
-  // Optional control pinned to the trailing edge of the hero, a ToggleSwitch,
+  // Optional control pinned to the trailing edge of the hero — a ToggleSwitch,
   // a small button. The hero centers it against the labels and reserves the
   // space itself, so callers never do the geometry.
   property Component trailingControl: null
@@ -72,7 +71,7 @@ Item {
         implicitHeight: detailText.implicitHeight + Style.space(4)
         anchors.verticalCenter: parent.verticalCenter
         color: "transparent"
-        borderSpec: Border.controlSpec("normal", root.foreground, Commons.Color.accent)
+        borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
         radius: Style.cornerRadius
 
         Text {

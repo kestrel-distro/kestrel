@@ -1,8 +1,7 @@
-import QtQuick
+import QtQuick 6.11
 import Quickshell
 import Quickshell.Wayland
 import qs.Commons
-import qs.Commons as Commons
 
 // Layer-shell popup attached to a bar widget icon, designed for
 // click-driven AND keyboard-driven panels (e.g. SUPER+CTRL+W summon).
@@ -10,14 +9,13 @@ import qs.Commons as Commons
 // Built on PanelWindow with a brief WlrKeyboardFocus.Exclusive prime followed
 // by OnDemand rather than PopupWindow (xdg-popup). The prime acquires focus
 // both when the surface maps and when it reopens while still mapped for its
-// fade-out. xdg-popups don't get that, they only receive keys after a
-// click/hover routes focus through their parent surface, so keyboard-summoned
+// fade-out. xdg-popups don't get that — they only receive keys after a
+// click/hover routes focus through their parent surface — so keyboard-summoned
 // popups fell flat without it.
 //
-// Exclusive would also grant map-time focus, but it makes Hyprland route
-// *every* pointer event to the exclusive surface no matter which output
-// the cursor is over, which leaves clicks on any other monitor unable to
-// reach the dismissal surfaces below.
+// Exclusive would also grant map-time focus, but it routes every pointer event
+// to the exclusive surface no matter which output owns the cursor, leaving
+// other outputs unable to reach their dismissal surfaces.
 //
 // API is a subset of Common.PopupCard: anchorItem, owner, bar, open,
 // padding, margin, contentWidth/Height, centerOnBar, default contentItem.
@@ -45,22 +43,13 @@ PanelWindow {
   property int padding: Style.spacing.popupPadding
   property int contentWidth: Style.space(280)
   property int contentHeight: Style.space(200)
-  property var borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
+  property var borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
   property bool centerOnBar: false
   property bool open: false
   property int gap: Style.gapsOut  // distance between bar edge and panel
   property bool popoutSwitching: false
   property bool popoutSwitchClosing: false
   property bool focusPrimed: false
-
-  // Optional full-screen dim behind the card. Panels that want a hint of
-  // background separation (e.g. the menu) pass a translucent color; the
-  // default keeps the surface fully transparent like the calendar.
-  property color scrimColor: "transparent"
-
-  // Card color/border override for plugins whose theme differs from the
-  // shared popup palette (defaults keep the popups look).
-  property color cardColor: Commons.Color.popups.background
 
   // Item that should take keyboard focus once the panel maps. Typically a
   // PanelKeyCatcher inside the panel content. Layer-shell grants focus to the
@@ -92,17 +81,17 @@ PanelWindow {
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
 
-  WlrLayershell.namespace: "kestrel-keyboard-panel"
+  WlrLayershell.namespace: "omarchy-keyboard-panel"
   WlrLayershell.layer: WlrLayer.Overlay
   // Keyboard focus follows `open` (NOT `visible`). The window remains
   // mapped during the fade-out so the opacity animation has something to
   // animate, but keyboard/click ownership must release the moment the
-  // logical close fires, otherwise the user is locked out for 140ms.
+  // logical close fires — otherwise the user is locked out for 140ms.
   //
-  // Prime with Exclusive on every open, then settle on OnDemand. Hyprland
-  // focuses OnDemand when a surface first maps, but not when an already-mapped
-  // fade-out surface changes from None back to OnDemand. Exclusive also takes
-  // focus when the previously focused application has constrained the pointer.
+  // Prime with Exclusive on every open, then settle on OnDemand. OnDemand does
+  // not focus an already-mapped fade-out surface when it changes back from
+  // None. Exclusive also takes focus when the previously focused application
+  // has constrained the pointer.
   // The brief prime covers both cases; OnDemand then releases compositor-wide
   // pointer hit-testing so clicks can reach the dismissal windows below.
   WlrLayershell.keyboardFocus: open
@@ -123,19 +112,13 @@ PanelWindow {
     right: true
   }
 
-  Rectangle {
-    anchors.fill: parent
-    color: scrimColor
-    opacity: root.open ? 1 : 0
-  }
-
   // Clickable region is the whole screen. Clicks in the bar strip are
   // forwarded to registered bar buttons so switching between panel icons
   // works in one click even when the overlay surface is above the bar.
   readonly property real _barStripSize: {
     if (!bar) return 0
     var actual = (root.barPos === "top" || root.barPos === "bottom") ? root.barH : root.barW
-    return Math.max(bar.barSize || 0, actual) + root.gap
+    return Math.max(bar.barSize, actual) + root.gap
   }
   mask: Region {
     width: root.screenW
@@ -145,7 +128,7 @@ PanelWindow {
   // Track every layout change between the bar's contentItem and the
   // anchor item. `transform` updates whenever any item in that chain
   // moves/resizes, which is what makes the position binding below
-  // actually reactive, mapToItem on its own is a one-shot.
+  // actually reactive — mapToItem on its own is a one-shot.
   TransformWatcher {
     id: anchorWatcher
     a: anchorWindow ? anchorWindow.contentItem : null
@@ -196,7 +179,7 @@ PanelWindow {
 
   // Desired top-left of the card in screen coordinates. For the
   // perpendicular axis (away-from-bar) we anchor to the bar window's edge
-  // directly, not the anchor item's y/x, because mapToItem(barContent)
+  // directly — not the anchor item's y/x — because mapToItem(barContent)
   // returns coordinates in the bar's content space, which can be offset
   // from the bar surface's screen-anchored corner by internal layout
   // (centering wrappers, padding). The bar's surface IS aligned to its
@@ -205,11 +188,8 @@ PanelWindow {
   // parallel axis (along the bar) the anchor item's reported position is
   // still consistent with the bar content origin, so it's accurate for
   // centering the card under the icon.
-  // Fall back to the bar's declared size: plugins that only receive the
-  // bar-state snapshot (no live window reference) still need the true strip
-  // height, otherwise a gap-0 card would sit over the bar instead of under.
-  readonly property real barW: anchorWindow ? anchorWindow.width : (bar && bar.barSize > 0 ? bar.barSize : screenW)
-  readonly property real barH: anchorWindow ? anchorWindow.height : (bar && bar.barSize > 0 ? bar.barSize : 0)
+  readonly property real barW: anchorWindow ? anchorWindow.width : screenW
+  readonly property real barH: anchorWindow ? anchorWindow.height : 0
   readonly property point cardOrigin: {
     if (!anchorItem || !bar) return Qt.point(margin, margin)
     var x = 0, y = 0
@@ -254,10 +234,6 @@ PanelWindow {
       focusPrimed = false
     }
     if (!bar) return
-    // Third-party surfaces like remote-loaded menus only get the state-snapshot
-    // bar API (position/barSize), never the live Bar item holding popout click
-    // routing; degrade to plain open/close there.
-    if (typeof bar.requestPopout !== "function") return
     if (open) {
       popoutSwitchClosing = false
       popoutSwitching = bar.activePopout && bar.activePopout !== coordinatorKey
@@ -347,9 +323,8 @@ PanelWindow {
     onPositionChanged: function(mouse) { hoveringBar = inBarRegion(mouse.x, mouse.y) }
     onExited: hoveringBar = false
     onClicked: function(mouse) {
-      // While Exclusive is priming, Hyprland may route a click from another
-      // output here with translated coordinates. Never interpret that as a
-      // click on this output's bar.
+      // While Exclusive is priming, a click from another output can arrive with
+      // translated coordinates. Never interpret it as this output's bar.
       if (root.focusPrimed && inBarRegion(mouse.x, mouse.y) && forwardBarClick(mouse.x, mouse.y, mouse.button)) return
       root.close()
     }
@@ -377,7 +352,7 @@ PanelWindow {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
 
-        WlrLayershell.namespace: "kestrel-keyboard-panel-dismiss"
+        WlrLayershell.namespace: "omarchy-keyboard-panel-dismiss"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
@@ -405,7 +380,7 @@ PanelWindow {
     y: root.cardOrigin.y
     width: root.contentWidth
     height: root.contentHeight
-    color: root.cardColor
+    color: Color.popups.background
     borderSpec: root.borderSpec
     padding: root.padding
     radius: Style.cornerRadius

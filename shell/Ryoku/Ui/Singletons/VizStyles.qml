@@ -2,7 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Ryoku.Ui.Singletons
+import "../../../Ryoku/Ui/Singletons"
 // The visualiser looks, drawn. This is the ONE catalogue of looks: the Hub
 // gallery, the preview and anything else read it instead of re-listing the
 // ids or re-inventing what each looks like. It mirrors Silhouette (the bar

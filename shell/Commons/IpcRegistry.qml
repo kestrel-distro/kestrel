@@ -1,9 +1,9 @@
 pragma Singleton
-import QtQuick
+import QtQuick 6.11
 import Quickshell
 import Quickshell.Io
 
-// Every ShellIpc handler, so the shell can answer an kestrel-shell call over
+// Every ShellIpc handler, so the shell can answer an omarchy-shell call over
 // its own socket instead of through a qs ipc client started per call. It
 // answers only what qs ipc would: the first live, enabled handler for a
 // target, and only the functions that handler declares. Those are allowed by
@@ -31,11 +31,27 @@ Singleton {
     return names
   }
 
+  function claim(handler) {
+    if (!handler) return
+    if (!handler.wantsEnabled || handler.target === "") {
+      handler.ownsTarget = false
+      return
+    }
+    for (var i = 0; i < handlers.length; i++) {
+      var existing = handlers[i]
+      if (existing && existing !== handler && existing.target === handler.target)
+        existing.ownsTarget = false
+    }
+    handler.ownsTarget = true
+  }
+
   function register(handler) {
     if (handlers.indexOf(handler) === -1) handlers.push(handler)
+    claim(handler)
   }
 
   function unregister(handler) {
+    handler.ownsTarget = false
     var index = handlers.indexOf(handler)
     if (index !== -1) handlers.splice(index, 1)
   }

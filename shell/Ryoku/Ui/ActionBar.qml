@@ -1,6 +1,6 @@
 import QtQuick
 import "Singletons"
-import Ryoku.Ui.Singletons
+import "../../Ryoku/Ui/Singletons"
 
 // The bar every settings page needs before it needs anything else. A page that
 // previews live and cannot save does not look broken, it looks fine and then

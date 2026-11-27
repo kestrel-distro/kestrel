@@ -1,15 +1,14 @@
-import QtQuick
+import QtQuick 6.11
 import QtQuick.Layouts
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import qs.Commons
-import qs.Commons as Commons
 import qs.Ui
 
 // Centered speed test overlay shared by the network and disk speed tests. No
 // card: like the Tucson's floating cluster, the two dials sit directly on a
-// darkened scrim, open 270° arcs, faint tick rings, hubless gradient
+// darkened scrim -- open 270° arcs, faint tick rings, hubless gradient
 // needles, and a digital readout in the middle. Esc, the scrim, or the corner
 // dismiss close it; the needles sweep to full scale and back on open, then
 // track the live readings. Callers name the dials, the unit, and the scale.
@@ -22,7 +21,7 @@ PanelWindow {
   required property string rightLabel
   property string unit: "Mbps"
   property string title: ""
-  property string layerNamespace: "kestrel-speed-test"
+  property string layerNamespace: "omarchy-speed-test"
   property string runAgainTooltip: "Measure again"
   property real leftValue: 0
   property real rightValue: 0
@@ -226,7 +225,7 @@ PanelWindow {
 
     property real shown: 0
     // The digital readout stays on the real figure while the ignition sweep
-    // drives the needle, a cluster sweeps its gauges, not its numerals.
+    // drives the needle -- a cluster sweeps its gauges, not its numerals.
     readonly property real reading: ignition.running ? value : shown
     readonly property real fullScale: root.fullScale
     readonly property real fraction: fullScale > 0 ? Math.max(0, Math.min(1, shown / fullScale)) : 0
@@ -289,7 +288,7 @@ PanelWindow {
       // round caps would leave a stray dot at the foot of the scale.
       ShapePath {
         strokeWidth: dial.arcWidth * 3
-        strokeColor: dial.arcVisible ? Qt.rgba(Commons.Color.accent.r, Commons.Color.accent.g, Commons.Color.accent.b, 0.18) : "transparent"
+        strokeColor: dial.arcVisible ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.18) : "transparent"
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
 
@@ -306,7 +305,7 @@ PanelWindow {
       // Value: fills behind the needle.
       ShapePath {
         strokeWidth: dial.arcWidth
-        strokeColor: dial.arcVisible ? Commons.Color.accent : "transparent"
+        strokeColor: dial.arcVisible ? Color.accent : "transparent"
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
 
@@ -357,8 +356,8 @@ PanelWindow {
         radius: width / 2
 
         gradient: Gradient {
-          GradientStop { position: 0.0; color: Commons.Color.accent }
-          GradientStop { position: 0.55; color: Commons.Color.accent }
+          GradientStop { position: 0.0; color: Color.accent }
+          GradientStop { position: 0.55; color: Color.accent }
           GradientStop { position: 1.0; color: "transparent" }
         }
       }

@@ -1,6 +1,6 @@
 import QtQuick
 import "Singletons"
-import Ryoku.Ui.Singletons
+import "../../Ryoku/Ui/Singletons"
 
 // One setting, drawn as a compact row instead of a value-hero card. The label
 // reads first (primary ink), the description sits under it (muted), and the

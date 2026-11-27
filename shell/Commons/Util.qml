@@ -1,8 +1,9 @@
 pragma Singleton
 import Quickshell
-import QtQuick
+import QtQuick 6.11
+import "../Ryoku/Ui/Singletons"
 
-// Shared utility helpers used across plugins. Pure functions only, no
+// Shared utility helpers used across plugins. Pure functions only — no
 // state. Anything stateful belongs on Color, Style, or a service.
 QtObject {
   id: root
@@ -60,11 +61,19 @@ QtObject {
 
   // Run an argv vector without a shell interpreting it: the constant `exec "$@"`
   // means the args only ever land in positional parameters, which bash expands
-  // without re-tokenizing, so untrusted data ($(id), a filename) stays literal.
-  // The login shell (-l) keeps the PATH/session env GUI targets (satty, mpv,
+  // without re-tokenizing — so untrusted data ($(id), a filename) stays literal.
+  // The login shell (-l) keeps the PATH/session env GUI targets (omasnap, mpv,
   // xdg-open) need. Prefer this over execDetached for anything built from input.
   function execArgv(argv) {
     Quickshell.execDetached(["bash", "-lc", 'exec "$@"', "bash"].concat(argv))
+  }
+
+  function execApp(command, label) {
+    Spawn.runApp(["bash", "-lc", command], { label: label || "app" })
+  }
+
+  function execAppArgv(argv, label) {
+    Spawn.runApp(["bash", "-lc", 'exec "$@"', "bash"].concat(argv), { label: label || argv[0] || "app" })
   }
 
   function isPlainObject(value) {
@@ -106,11 +115,11 @@ QtObject {
   //   Ctrl+Backspace  delete previous word (Qt DeleteStartOfWord)
   //   Ctrl+U          clear the whole field
   // True only when the event would actually change the text, so an empty
-  // filter never swallows the key, panels keep their own empty-filter
+  // filter never swallows the key — panels keep their own empty-filter
   // fallbacks (e.g. menu back-navigation) in later branches.
   function editsFilter(event, text) {
     if (!text) return false
-    // Alt/Meta-modified sequences belong to other shortcuts, never edit here.
+    // Alt/Meta-modified sequences belong to other shortcuts — never edit here.
     if (event.modifiers & (Qt.AltModifier | Qt.MetaModifier)) return false
     if (event.key === Qt.Key_U)                     // Ctrl+U only (not Ctrl+Shift+U → Unicode input)
       return event.modifiers === Qt.ControlModifier

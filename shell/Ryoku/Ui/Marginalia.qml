@@ -1,6 +1,6 @@
 import QtQuick
 import "Singletons"
-import Ryoku.Ui.Singletons
+import "../../Ryoku/Ui/Singletons"
 
 // Printed-page marginalia for a chrome dead zone: the reference's masthead row
 // distilled to a thin strip -- a pixel dingbat, a katakana gloss, a numbered

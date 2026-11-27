@@ -1,9 +1,8 @@
-import QtQuick
+import QtQuick 6.11
 import QtQuick.Controls as QQC
 import QtQuick.Window
 import Quickshell.Io
 import qs.Commons
-import qs.Commons as Commons
 
 // Searchable multi-select dropdown. Trigger shape matches Dropdown /
 // SearchableDropdown; the popup shows a search field, an optional refresh
@@ -18,7 +17,7 @@ import qs.Commons as Commons
 //     one option per non-empty newline. Re-runs whenever the popup opens
 //     and via the refresh button.
 //
-// `values` is the persisted selection, always an array of strings.
+// `values` is the persisted selection — always an array of strings.
 // Emits `changed(values)` whenever the selection mutates.
 Item {
   id: root
@@ -34,11 +33,11 @@ Item {
   property string triggerLabel: ""
   property bool showLabel: true
 
-  property color foreground: Commons.Color.popups.text
-  property color background: Commons.Color.popups.background
-  property color popupBorder: Commons.Color.popups.border
-  property color accent: Commons.Color.accent
-  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Commons.Color.popups.border, Style.normalBorderWidth)
+  property color foreground: Color.popups.text
+  property color background: Color.popups.background
+  property color popupBorder: Color.popups.border
+  property color accent: Color.accent
+  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Color.popups.border, Style.normalBorderWidth)
   property string fontFamily: Style.font.family
   property int rowHeight: Style.spacing.controlHeight
   property int popupRowHeight: Style.spacing.popupRowHeight
@@ -152,7 +151,7 @@ Item {
   }
 
   // Parse stdout from a dynamic optionsCommand into `{ options, error }`.
-  // Output starting with `[` is parsed strictly as JSON, a malformed array
+  // Output starting with `[` is parsed strictly as JSON — a malformed array
   // surfaces as an error rather than silently falling back to newline
   // parsing, which would render the broken text as a literal option label.
   // Output not starting with `[` is treated as one value per non-empty line.

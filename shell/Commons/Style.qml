@@ -1,22 +1,17 @@
 pragma Singleton
-import QtQuick
-import qs.Commons as Commons
+import QtQuick 6.11
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Io
+import "../Ryoku/Ui/Singletons"
 
 // Shared structural style tokens for the shell. Color is the palette
-// singleton; Style holds everything else themes can influence, corner
+// singleton; Style holds everything else themes can influence: corner
 // rounding, gap to screen edges, state affordances, spacing, typography
 // scale, and bar dimensions.
 //
-// `cornerRadius` mirrors Hyprland's `decoration:rounding`. `gapsOut` is
-// half of Hyprland's `general:gaps_out`, Hyprland's value works well as
-// a window-to-window gap but feels too cavernous when used as the
-// distance from a panel/notification to the screen edge, so the shell
-// halves it. Themes and user Hyprland config own those values; the
-// shell picks them up by re-running `hyprctl getoption` on startup and
-// after theme IPC applies a theme.
+// Ryoku's shared tokens own geometry and motion so the kit behaves the same
+// under every window manager. Typography, spacing, bar dimensions and
+// control-state styling still come from theme/shell.toml.
 //
 // Typography, spacing, and bar size come from theme/shell.toml.
 // `[font] base-size` is the rem root; every `Style.font.<token>` derives
@@ -30,17 +25,17 @@ import Quickshell.Io
 QtObject {
   id: root
 
-  property int cornerRadius: 0
-  property int gapsOut: 5
+  property int cornerRadius: Tokens.radius
+  property int gapsOut: Tokens.s2
 
   // ---------------------------------------------------------- state tokens
   //
   // Shared interactive-state tokens for every reusable surface in the kit.
   // The vocabulary:
-  //   normal, idle control chrome
-  //   hover-cursor, mouse hover OR panel keyboard cursor (`hasCursor`)
-  //   selected, persistent chosen/current state
-  //   focus, actual Qt activeFocus, defaulting to hover-cursor
+  //   normal       — idle control chrome
+  //   hover-cursor — mouse hover OR panel keyboard cursor (`hasCursor`)
+  //   selected     — persistent chosen/current state
+  //   focus        — actual Qt activeFocus, defaulting to hover-cursor
   //
   // Each state has a color token plus fill/border alphas. Color tokens
   // may be palette roles (`foreground`, `accent`, `urgent`, `background`)
@@ -115,27 +110,27 @@ QtObject {
   }
 
   function resolveStateColor(token, foreground, accent, urgent, fallback) {
-    var fb = fallback || foreground || Commons.Color.foreground
+    var fb = fallback || foreground || Color.foreground
     var s = String(token || "").replace(/^\s+|\s+$/g, "")
     var role = s.toLowerCase()
-    if (role === "foreground" || role === "text") return foreground || Commons.Color.foreground
-    if (role === "accent") return accent || Commons.Color.accent
-    if (role === "urgent") return urgent || Commons.Color.urgent
-    if (role === "background") return Commons.Color.background
+    if (role === "foreground" || role === "text") return foreground || Color.foreground
+    if (role === "accent") return accent || Color.accent
+    if (role === "urgent") return urgent || Color.urgent
+    if (role === "background") return Color.background
     if (role === "transparent") return Qt.rgba(0, 0, 0, 0)
     return colorFromHex(s, fb)
   }
 
   function normalStateColor(foreground, accent, urgent) {
-    return resolveStateColor(normalColorToken, foreground, accent, urgent, foreground || Commons.Color.foreground)
+    return resolveStateColor(normalColorToken, foreground, accent, urgent, foreground || Color.foreground)
   }
 
   function hoverStateColor(foreground, accent, urgent) {
-    return resolveStateColor(hoverColorToken, foreground, accent, urgent, foreground || Commons.Color.foreground)
+    return resolveStateColor(hoverColorToken, foreground, accent, urgent, foreground || Color.foreground)
   }
 
   function selectedStateColor(foreground, accent, urgent) {
-    return resolveStateColor(selectedColorToken, foreground, accent, urgent, foreground || Commons.Color.foreground)
+    return resolveStateColor(selectedColorToken, foreground, accent, urgent, foreground || Color.foreground)
   }
 
   function pressedStateColor(foreground, accent, urgent) {
@@ -150,7 +145,7 @@ QtObject {
   }
 
   function selectionStateColor(foreground, accent, urgent) {
-    return resolveStateColor(selectionColorToken, foreground, accent, urgent, foreground || Commons.Color.foreground)
+    return resolveStateColor(selectionColorToken, foreground, accent, urgent, foreground || Color.foreground)
   }
 
   function normalFillFor(foreground, accent, urgent) { return Util.alpha(normalStateColor(foreground, accent, urgent), normalFillAlpha) }
@@ -188,17 +183,17 @@ QtObject {
   }
 
   // Convenience colors resolved against the foundational palette.
-  readonly property color normalFill: normalFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color hoverFill: hoverFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color selectedFill: selectedFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color pressedFill: pressedFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color focusFillColor: focusFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color normalBorderColor: normalBorderFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color hoverBorderColor: hoverBorderFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color selectedBorderColor: selectedBorderFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color focusBorderColor: focusBorderFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
-  readonly property color selectedAccentFill: Util.alpha(Commons.Color.accent, selectedFillAlpha)
-  readonly property color selectionFill: selectionFillFor(Commons.Color.foreground, Commons.Color.accent, Commons.Color.urgent)
+  readonly property color normalFill: normalFillFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color hoverFill: hoverFillFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color selectedFill: selectedFillFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color pressedFill: pressedFillFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color focusFillColor: focusFillFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color normalBorderColor: normalBorderFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color hoverBorderColor: hoverBorderFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color selectedBorderColor: selectedBorderFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color focusBorderColor: focusBorderFor(Color.foreground, Color.accent, Color.urgent)
+  readonly property color selectedAccentFill: Util.alpha(Color.accent, selectedFillAlpha)
+  readonly property color selectionFill: selectionFillFor(Color.foreground, Color.accent, Color.urgent)
 
   // ---------------------------------------------------------- spacing
   //
@@ -265,14 +260,14 @@ QtObject {
   // ---------------------------------------------------------- typography
   //
   // `fontFamily` defaults to "monospace" so the bar and every qs.Ui
-  // component follows the fontconfig alias `kestrel-font-set` writes.
+  // component follows the fontconfig alias `omarchy-font-set` writes.
   // Themes can override per-token via [font] in shell.toml, but the
   // family stays system-wide.
   property string fontFamily: "monospace"
 
   // The concrete family `monospace` resolves to right now, e.g.
   // "JetBrainsMono Nerd Font". Bind `font.family` to `fontFamily` (so the
-  // alias path keeps working when the user runs `kestrel font set`), but
+  // alias path keeps working when the user runs `omarchy font set`), but
   // read `resolvedFontFamily` when you want to *display* what's drawing.
   property string resolvedFontFamily: "monospace"
 
@@ -281,13 +276,6 @@ QtObject {
   property int fontBaseSize: 12
 
   property var fontOverrides: ({})
-  // Optional per-theme families. Empty means "follow fontFamily", so a user
-  // who picks a system font still owns the shell; a theme that wants a
-  // distinct display or mono face sets these in its shell.toml.
-  property string uiFamilyOverride: ""
-  property string displayFamilyOverride: ""
-  property string monoFamilyOverride: ""
-  property string jpFamilyOverride: ""
   property var barOverrides: ({})
   property bool barScaleWithFont: true
   readonly property real fontScale: Math.max(1 / 12, fontBaseSize / 12)
@@ -319,25 +307,18 @@ QtObject {
   }
 
   // The menu, polkit, emojis, and clipboard surfaces honor an
-  // KESTREL_MENU_FONT override for users who want a different family on the
+  // OMARCHY_MENU_FONT override for users who want a different family on the
   // summoned popups than on the bar. Resolved once at startup; an empty env
   // value falls back to the shared fontconfig alias.
   readonly property string menuFontFamily: {
-    var override = Quickshell.env("KESTREL_MENU_FONT")
-    if (override && override.length > 0) return override
-    return root.uiFamilyOverride.length > 0 ? root.uiFamilyOverride : fontFamily
+    var override = Quickshell.env("OMARCHY_MENU_FONT")
+    return (override && override.length > 0) ? override : fontFamily
   }
 
   readonly property QtObject font: QtObject {
-    readonly property string family: root.uiFamilyOverride.length > 0 ? root.uiFamilyOverride : root.fontFamily
+    readonly property string family: root.fontFamily
     readonly property string resolvedFamily: root.resolvedFontFamily
     readonly property string menuFamily: root.menuFontFamily
-    // The display face carries headlines and poster titles; mono carries
-    // data and keycaps. Both fall back to the system family, so a theme that
-    // names no font changes nothing.
-    readonly property string displayFamily: root.displayFamilyOverride.length > 0 ? root.displayFamilyOverride : root.fontFamily
-    readonly property string monoFamily: root.monoFamilyOverride.length > 0 ? root.monoFamilyOverride : root.fontFamily
-    readonly property string jpFamily: root.jpFamilyOverride.length > 0 ? root.jpFamilyOverride : root.fontFamily
     readonly property int baseSize: root.fontBaseSize
 
     readonly property int caption:      root.fontToken("caption",       root.fontPx(0.833))   // 10
@@ -363,53 +344,23 @@ QtObject {
     readonly property int statusSlot:     root.barToken("status-slot",     21)
   }
 
-  // Off with Hyprland's own animations, as `kestrel toggle animations` turns
-  // them off for machines that render on the CPU. Every shell animation runs
-  // for Style.duration(ms), which is then 0, so nothing is drawn in between.
-  property bool reduceMotion: false
+  property bool reduceMotion: Tokens.reduceMotion
 
   function duration(ms) {
     return reduceMotion ? 0 : ms
   }
 
   function refresh() {
-    hyprctlProc.running = true
-    gapsOutProc.running = true
-    animationsProc.running = true
   }
 
   function scheduleRefresh() {
-    refreshTimer.restart()
-  }
-
-  function applyRoundingJson(raw) {
-    try {
-      var json = JSON.parse(raw || "{}")
-      var n = Number(json.int)
-      if (isFinite(n) && n >= 0) cornerRadius = n
-    } catch (e) {
-      // hyprctl missing / Hyprland not running, leave the previous value.
-    }
-  }
-
-  function applyGapsOutJson(raw) {
-    try {
-      var json = JSON.parse(raw || "{}")
-      var css = String(json.css || "")
-      var parts = css.match(/-?\d+(?:\.\d+)?/g) || []
-      var n = parts.length > 0 ? Number(parts[0]) : Number(json.int)
-      if (isFinite(n) && n >= 0) gapsOut = Math.max(0, Math.round(n / 2))
-    } catch (e) {
-      // hyprctl missing / Hyprland not running, leave the previous value.
-    }
   }
 
   // Pull typography, bar dimensions, state tokens, and spacing out of the
-  // shell.toml dict that Color already parsed. Called by Commons.Color.loadShell so
+  // shell.toml dict that Color already parsed. Called by Color.loadShell so
   // a single parse pass feeds both singletons.
   function applyShellValues(values) {
     var fontOut = {}
-    var fontFamilyOut = {}
     var barOut = {}
     var styleOut = {}
     var spacingOut = {}
@@ -425,10 +376,6 @@ QtObject {
       var key = fullKey.substr(dot + 1)
       var raw = v[fullKey]
       if (section === "font") {
-        if (key === "family" || key === "display-family" || key === "mono-family" || key === "jp-family") {
-          fontFamilyOut[key] = String(raw)
-          continue
-        }
         var ival = parseInt(raw, 10)
         if (!isFinite(ival)) continue
         if (key === "base-size") nextBase = ival
@@ -456,7 +403,7 @@ QtObject {
       }
     }
     // Keep only a 1px sanity floor. Per-token overrides aren't clamped
-    // either, a theme that wants display-large = 64 should be allowed to
+    // either — a theme that wants display-large = 64 should be allowed to
     // ship it.
     if (!isFinite(nextBase) || nextBase < 1) nextBase = 1
     if (!isFinite(nextSpacingScale) || nextSpacingScale < 0) nextSpacingScale = 1.0
@@ -464,59 +411,14 @@ QtObject {
     spacingScaleWithFont = nextSpacingScaleWithFont
     fontBaseSize = nextBase
     fontOverrides = fontOut
-    uiFamilyOverride = fontFamilyOut["family"] || ""
-    displayFamilyOverride = fontFamilyOut["display-family"] || ""
-    monoFamilyOverride = fontFamilyOut["mono-family"] || ""
-    jpFamilyOverride = fontFamilyOut["jp-family"] || ""
     barOverrides = barOut
     barScaleWithFont = nextBarScaleWithFont
     spacingOverrides = spacingOut
     styleOverrides = styleOut
   }
 
-  property Process hyprctlProc: Process {
-    id: hyprctlProc
-    command: ["hyprctl", "-j", "getoption", "decoration:rounding"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.applyRoundingJson(text)
-    }
-  }
 
-  property Process animationsProc: Process {
-    id: animationsProc
-    command: ["hyprctl", "-j", "getoption", "animations:enabled"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        try {
-          root.reduceMotion = JSON.parse(text || "{}").bool === false
-        } catch (e) {
-          // hyprctl missing / Hyprland not running, leave the previous value.
-        }
-      }
-    }
-  }
-
-  // A reload is when the animations toggle, a theme or the user's own config
-  // lands, and Hyprland only announces it once the new values are in effect.
-  property Connections hyprlandEvents: Connections {
-    target: Hyprland
-    function onRawEvent(event) {
-      if (event && String(event.name) === "configreloaded") root.refresh()
-    }
-  }
-
-  property Process gapsOutProc: Process {
-    id: gapsOutProc
-    command: ["hyprctl", "-j", "getoption", "general:gaps_out"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.applyGapsOutJson(text)
-    }
-  }
-
-  // Resolve the fontconfig alias to a concrete family name. `kestrel font
+  // Resolve the fontconfig alias to a concrete family name. `omarchy font
   // set <name>` rewrites ~/.config/fontconfig/fonts.conf and restarts the
   // shell, but rerun on file change anyway so manual edits propagate too.
   function resolveFontFamily() {
@@ -544,31 +446,5 @@ QtObject {
     onLoadFailed: root.resolveFontFamily()
   }
 
-  // Re-poll Hyprland a beat after either input file changes. Hyprland's
-  // auto-reload runs asynchronously when its sourced .lua files change,
-  // so racing it with an immediate hyprctl gives the old value. 200ms is
-  // generous enough for Hyprland to settle without being user-visible.
-  property Timer refreshTimer: Timer {
-    id: refreshTimer
-    interval: 200
-    repeat: false
-    onTriggered: root.refresh()
-  }
-
-  // `kestrel toggle window-gaps` creates/removes this flag file. Hyprland
-  // reloads its config when sourced files change, then hyprctl reflects
-  // the new effective value.
-  property FileView windowNoGapsToggle: FileView {
-    path: Quickshell.env("HOME") + "/.local/state/kestrel/toggles/hypr/window-no-gaps.lua"
-    watchChanges: true
-    printErrors: false
-    onFileChanged: refreshTimer.restart()
-    onLoaded: refreshTimer.restart()
-    onLoadFailed: refreshTimer.restart()
-  }
-
-  Component.onCompleted: {
-    refresh()
-    resolveFontFamily()
-  }
+  Component.onCompleted: resolveFontFamily()
 }

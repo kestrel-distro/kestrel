@@ -1,21 +1,20 @@
-import QtQuick
+import QtQuick 6.11
 import QtQuick.Controls
 import qs.Commons
-import qs.Commons as Commons
 
 // Themed single-select dropdown. Trigger row paints with the kit's focus
-// chrome; the popup anchors below and uses Commons.Color.popups.background +
-// Commons.Color.popups.border so it reads as a panel surface rather than the
+// chrome; the popup anchors below and uses Color.popups.background +
+// Color.popups.border so it reads as a panel surface rather than the
 // platform-native ComboBox look.
 //
 // `options` accepts either a plain string[] or an array of
 // { value, label } objects (label is what we render; value is what we
-// emit). Mixing is fine, each row is interpreted independently.
+// emit). Mixing is fine — each row is interpreted independently.
 //
 // Keyboard: Tab to focus the trigger, Enter/Space opens, Esc closes,
 // j/k or Up/Down walks options inside the open popup, Enter selects.
 // A sibling SearchableDropdown reuses the same visuals but adds an
-// embedded filter input, keep the two separate so each stays simple.
+// embedded filter input — keep the two separate so each stays simple.
 Item {
   id: root
 
@@ -23,11 +22,11 @@ Item {
   property string value: ""
   property var options: []
 
-  property color foreground: Commons.Color.popups.text
-  property color background: Commons.Color.popups.background
-  property color popupBorder: Commons.Color.popups.border
-  property color accent: Commons.Color.accent
-  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Commons.Color.popups.border, Style.normalBorderWidth)
+  property color foreground: Color.popups.text
+  property color background: Color.popups.background
+  property color popupBorder: Color.popups.border
+  property color accent: Color.accent
+  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Color.popups.border, Style.normalBorderWidth)
   property string fontFamily: Style.font.family
   property int rowHeight: Style.spacing.controlHeight
   property int popupRowHeight: Style.spacing.popupRowHeight

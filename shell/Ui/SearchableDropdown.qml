@@ -1,7 +1,6 @@
-import QtQuick
+import QtQuick 6.11
 import QtQuick.Controls as QQC
 import qs.Commons
-import qs.Commons as Commons
 
 // Searchable single-select dropdown. Same trigger shape as Dropdown, but
 // the popup leads with an embedded TextField that filters the option
@@ -9,7 +8,7 @@ import qs.Commons as Commons
 // is friction.
 //
 // Filtering is case-insensitive substring against each option's label.
-// Options can be string[] or [{ value, label, description? }], the same
+// Options can be string[] or [{ value, label, description? }] — the same
 // shape Dropdown accepts. The filter clears whenever the popup closes.
 //
 // Keyboard: Tab to focus the trigger, Enter/Space opens (search focused
@@ -26,11 +25,11 @@ Item {
   property string emptyText: "No matches"
   property string triggerLabel: ""
 
-  property color foreground: Commons.Color.popups.text
-  property color background: Commons.Color.popups.background
-  property color popupBorder: Commons.Color.popups.border
-  property color accent: Commons.Color.accent
-  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Commons.Color.popups.border, Style.normalBorderWidth)
+  property color foreground: Color.popups.text
+  property color background: Color.popups.background
+  property color popupBorder: Color.popups.border
+  property color accent: Color.accent
+  readonly property var popupBorderSpec: Border.localOrSurfaceSpec("popups", "border", popupBorder, Color.popups.border, Style.normalBorderWidth)
   property string fontFamily: Style.font.family
   property int rowHeight: Style.spacing.controlHeight
   property int popupRowHeight: Style.spacing.popupRowHeight

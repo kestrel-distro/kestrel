@@ -1,6 +1,5 @@
-import QtQuick
+import QtQuick 6.11
 import qs.Commons
-import qs.Commons as Commons
 
 // Labeled toggle row: title + optional description on the left, a
 // `ToggleSwitch` on the right. Clicking anywhere on the row emits `clicked()`;
@@ -10,9 +9,8 @@ import qs.Commons as Commons
 // Cursor and focus styling match the rest of the kit: hasCursor / mouse
 // hover and activeFocus share the hover-cursor defaults.
 //
-// `rounded` is forwarded to the switch, which auto-detects from
-// Style.cornerRadius: pill shape when Hyprland corners are rounded, square on
-// sharp. Callers can override per-instance.
+// `rounded` is forwarded to the switch, which follows Style.cornerRadius.
+// Callers can override it per instance.
 BorderSurface {
   id: root
 
@@ -29,8 +27,8 @@ BorderSurface {
   // Override per-instance if a caller wants the opposite.
   property bool rounded: Style.cornerRadius > 0
 
-  property color foreground: Commons.Color.foreground
-  property color accent: Commons.Color.accent
+  property color foreground: Color.foreground
+  property color accent: Color.accent
   property string fontFamily: Style.font.family
   property real titleSize: Style.font.subtitle
   property real descriptionSize: Style.font.caption

@@ -1,3 +1,0 @@
-module stageframe
-singleton StageFrame 1.0 StageFrame.qml
-StageFramedLayer 1.0 StageFramedLayer.qml

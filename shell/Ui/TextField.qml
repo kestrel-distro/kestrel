@@ -1,7 +1,6 @@
-import QtQuick
+import QtQuick 6.11
 import QtQuick.Controls
 import qs.Commons
-import qs.Commons as Commons
 
 // Single-line text input with the kit's focus + selection styling. Inherits
 // from Qt Quick Controls TextField so the underlying type's API (text,
@@ -19,8 +18,8 @@ import qs.Commons as Commons
 TextField {
   id: root
 
-  property color foreground: Commons.Color.foreground
-  property color accent: Commons.Color.accent
+  property color foreground: Color.foreground
+  property color accent: Color.accent
   property color selectionTint: Style.selectionFillFor(foreground, accent)
   property bool password: false
   property real horizontalPadding: Style.spacing.controlPaddingX
@@ -29,7 +28,7 @@ TextField {
   // Panel-cursor flag. When true (and the field isn't already focused),
   // the background paints the shared hover/cursor state.
   // For mouse-enter/leave the consumer reads QQC TextField's inherited
-  // `hovered` property (via onHoveredChanged), we don't add a sibling
+  // `hovered` property (via onHoveredChanged) — we don't add a sibling
   // signal because the inherited property would shadow it.
   property bool hasCursor: false
 

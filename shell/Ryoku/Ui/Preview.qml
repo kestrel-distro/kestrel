@@ -1,6 +1,6 @@
 import QtQuick
 import "Singletons"
-import Ryoku.Ui.Singletons
+import "../../Ryoku/Ui/Singletons"
 
 // The block a page puts a live preview in. Shell, Widgets, Appearance and
 // ryowalls each grew their own, with their own gradient and their own badge, so

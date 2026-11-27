@@ -1,4 +1,4 @@
-import QtQuick
+import QtQuick 6.11
 import qs.Commons
 
 // Base item every bar widget extends. Codifies the three properties the
@@ -24,7 +24,7 @@ Item {
 
   // Run `method` on every live instance of this widget. An IPC target only
   // ever routes to one handler, but a bar surface exists per monitor, so the
-  // instance that owns the target relays the call to its peers, otherwise a
+  // instance that owns the target relays the call to its peers — otherwise a
   // refresh would land on a single screen and leave the others stale.
   function broadcast(method) {
     var items = bar && typeof bar.moduleWidgets === "function"

@@ -1,13 +1,9 @@
-import QtQuick
+import QtQuick 6.11
 
-// Hyprland leaves an already-mapped layer surface at its old global position
-// when its monitor moves within the layout: undocking disables the internal
-// panel, the external monitor shifts to x=0, and long-lived surfaces such as
-// the bar and background keep rendering at the old offset, or entirely
-// off-screen, until they are unmapped and remapped. Watch the screen's
-// origin and pulse `remapping` when it moves; the owning window folds that
-// into its `visible` binding so the compositor re-places the surface at the
-// monitor's new origin.
+// Some compositors leave an already-mapped layer surface at its old global
+// position when its output moves within the layout. Watch the screen origin and
+// pulse `remapping` when it moves; the owning window folds that into its
+// `visible` binding so the surface is placed at the output's new origin.
 Item {
   id: root
 

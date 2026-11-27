@@ -1,6 +1,5 @@
-import QtQuick
+import QtQuick 6.11
 import qs.Commons
-import qs.Commons as Commons
 
 // Small-caps-style label that introduces a panel section ("DNS provider",
 // "Wi-Fi networks", "Output device", "Paired devices"). Sits between a
@@ -8,7 +7,7 @@ import qs.Commons as Commons
 Text {
   id: root
 
-  property color foreground: Commons.Color.foreground
+  property color foreground: Color.foreground
   property string fontFamily: Style.font.family
   property real fontSize: Style.font.caption
 
@@ -24,8 +23,8 @@ Text {
   // Glyphs can paint above the box Text reserves for them: JetBrainsMono Nerd
   // Font's outlines run 10% of the em past its own ascent, and a patched or
   // user-chosen family can be worse. That sliver is invisible in normal flow,
-  // but a header sitting at the top of a clipping list, bluetooth's device
-  // list, network's station list, loses it to the clip and renders beheaded.
+  // but a header sitting at the top of a clipping list — bluetooth's device
+  // list, network's station list — loses it to the clip and renders beheaded.
   // Reserve the overshoot here so every panel is covered at once.
   topPadding: Math.ceil(fontSize * 0.15)
 }

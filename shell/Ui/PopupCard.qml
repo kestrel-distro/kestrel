@@ -1,8 +1,6 @@
-import QtQuick
+import QtQuick 6.11
 import Quickshell
-import Quickshell.Hyprland
 import qs.Commons
-import qs.Commons as Commons
 
 PopupWindow {
   id: root
@@ -14,12 +12,11 @@ PopupWindow {
   property int padding: Style.spacing.popupPadding
   property int contentWidth: Style.space(280)
   property int contentHeight: Style.space(200)
-  property color borderColor: Commons.Color.popups.border
-  property var borderSpec: Border.localOrSurfaceSpec("popups", "border", borderColor, Commons.Color.popups.border, Math.max(1, Style.space(2)))
+  property color borderColor: Color.popups.border
+  property var borderSpec: Border.localOrSurfaceSpec("popups", "border", borderColor, Color.popups.border, Math.max(1, Style.space(2)))
   property bool open: false
   property bool centerOnBar: false
-  // "click", uses HyprlandFocusGrab so clicking outside dismisses the popup.
-  // "hover", passive overlay; the owning widget controls open via hover.
+  // Hover popups stay passive; click popups close through their owner or Escape.
   property string triggerMode: "click"
 
   readonly property var coordinatorKey: owner || root
@@ -76,26 +73,21 @@ PopupWindow {
     else if (bar.activePopout === coordinatorKey) bar.releasePopout(coordinatorKey)
   }
 
-  // Outside-click dismissal via Hyprland's focus grab. While `active`, input
-  // is routed only to the listed windows; clicking anywhere else clears the
-  // grab and we close the popup. Skipped for hover-mode popups so the cursor
-  // can move freely between the trigger and the popup.
-  HyprlandFocusGrab {
-    active: root.open && root.triggerMode === "click"
-    windows: root.anchorWindow ? [root, root.anchorWindow] : [root]
-    onCleared: root.close()
-  }
 
   anchor {
-    id: popupAnchor
     window: anchorItem ? anchorItem.QsWindow.window : null
     adjustment: PopupAdjustment.Slide
     edges: Edges.Top | Edges.Left
     gravity: Edges.Bottom | Edges.Right
     rect.width: 1
     rect.height: 1
+  }
 
-    onAnchoring: {
+  // Quickshell's window module describes PopupAnchor as an opaque type, so a
+  // handler inside the anchor block reads as unresolved to the QML gate.
+  Connections {
+    target: root.anchor
+    function onAnchoring() {
       if (!root.anchorItem || !root.bar) return
 
       var target = root.anchorItem
@@ -130,8 +122,8 @@ PopupWindow {
           cy = Math.max(root.margin, Math.min(cy, window.height - popupHeight - root.margin))
         }
 
-        popupAnchor.rect.x = Math.round(cx)
-        popupAnchor.rect.y = Math.round(cy)
+        root.anchor.rect.x = Math.round(cx)
+        root.anchor.rect.y = Math.round(cy)
         return
       }
 
@@ -143,15 +135,15 @@ PopupWindow {
         point.y = Math.max(root.margin, Math.min(point.y, window.height - popupHeight - root.margin))
       }
 
-      popupAnchor.rect.x = Math.round(point.x)
-      popupAnchor.rect.y = Math.round(point.y)
+      root.anchor.rect.x = Math.round(point.x)
+      root.anchor.rect.y = Math.round(point.y)
     }
   }
 
   BorderSurface {
     id: card
     anchors.fill: parent
-    color: Commons.Color.popups.background
+    color: Color.popups.background
     borderSpec: root.borderSpec
     padding: root.padding
     radius: Style.cornerRadius

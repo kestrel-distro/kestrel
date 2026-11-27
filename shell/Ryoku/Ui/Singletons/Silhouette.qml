@@ -2,7 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Ryoku.Ui.Singletons
+import "../../../Ryoku/Ui/Singletons"
 
 // The bar skins, drawn. Every skin's silhouette lives here once so the gallery
 // tile and the live preview cannot disagree about what a skin looks like.

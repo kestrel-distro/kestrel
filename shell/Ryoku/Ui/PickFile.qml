@@ -5,7 +5,7 @@ import QtQuick.Controls
 import Qt.labs.folderlistmodel
 import Quickshell
 import "Singletons"
-import Ryoku.Ui.Singletons
+import "../../Ryoku/Ui/Singletons"
 
 // A monochrome file/folder picker modal (DESIGN.md section 6 overlay:
 // paperLift + lineStrong, no shadow). Shared by every surface that needs to

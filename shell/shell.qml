@@ -1,1920 +1,1170 @@
-import QtQuick
-import QtQml.Models
+//@ pragma UseQApplication
+// Threaded render loop: the frame's blob melt is a per-frame spring plus live
+// scene-graph MultiEffects (menu glass blur, blobs); threaded is vsync-locked and
+// frees the GUI thread so those effects get regular frame deltas and never ghost
+// or stutter. `basic` idled a touch cheaper on NVIDIA but smeared the live effects
+// when switching menu pages, so this matches the pill's proven render setup.
+//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
+//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
+//@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
+pragma ComponentBehavior: Bound
+
 import Quickshell
-import Quickshell.Hyprland
+import "./services"
+import "modules/visualizer/Singletons" as VizCfg
+import "modules/stage/Singletons" as StageCfg
+import "components"
+import "modules/wallpaper"
+import "modules/wallpaper/Singletons" as WallCfg
+import "modules/desktop"
+import "modules/visualizer"
+import "modules/bar"
+import "modules/sidebar"
+import "modules/dock"
+import "modules/launcher"
+import "modules/overview"
+import "modules/clipboard"
+import "./modules/phone" as Phone
+import QtQuick
 import Quickshell.Io
+import Quickshell.Wayland
+import "modules/osd"
+import "modules/notifications"
+import "modules/capture"
+import "modules/ask"
+import "modules/gamebar"
+import "modules/confirm"
+import "./Ryoku/Ui/Singletons"
+import "./stage/modules/common" as StageIsland
+import "./stage" as Stage
 
-import qs.Commons
-import qs.Commons as Commons
-
-import "plugins/bar"
-import "services"
-import "services/AuthServiceStore.js" as AuthServiceStore
-
+/**
+ * The single resident Ryoku shell instance.
+ *
+ * One ShellRoot for the whole desktop. It brings the shared service singletons
+ * online, holds the per-monitor ShellState every surface binds its visibility
+ * to, and registers the shell's in-QML global shortcuts. Each monitor
+ * gets one Scope carrying that screen's ShellState slice (st); every migrated
+ * surface is instantiated once inside it and binds its screen and its visibility
+ * to the slice, so a keybind that flips a flag on the active monitor reveals or
+ * hides exactly this monitor's copy in-process, where the old shell spawned a
+ * ryoku-shell client per press across separate surface processes.
+ *
+ * The ryoku-shell daemon launches this instance as `qs -c shell`, the live
+ * desktop. Where the compositor offers a global-shortcuts protocol its binds
+ * dispatch straight to the shortcuts registered here.
+ *
+ * UseQApplication is declared once for the whole shell (the tray needs Qt
+ * Widgets), replacing the six per-surface copies the old multi-process shell paid.
+ */
 ShellRoot {
-  id: shell
-
-  // Shared service instances. Plugins receive these via property injection
-  // rather than re-importing them as singletons, relative-path imports do
-  // not share singleton state, which silently leaves consumers with their
-  // own empty copies.
-  property PluginRegistry pluginRegistry: PluginRegistry { }
-  property BarWidgetRegistry barWidgetRegistry: BarWidgetRegistry { }
-  property AppLibrary appLibrary: AppLibrary { }
-  property BrightnessKeys brightnessKeys: BrightnessKeys { host: shell }
-  property BackgroundIntro bootIntro: BackgroundIntro { host: shell }
-
-  property string home: Quickshell.env("HOME")
-
-  // The kestrel-shell host is the long-running entry point. Plugins live in
-  // sibling directories under plugins/. KESTREL_PATH is provided by the uwsm
-  // session environment and is the single source of truth for this checkout.
-  property string kestrelPath: Quickshell.env("KESTREL_PATH")
-  readonly property string shellPath: kestrelPath + "/shell"
-  readonly property string firstPartyPluginsDir: shellPath + "/plugins"
-  readonly property string defaultsPath: kestrelPath + "/config/kestrel/shell.json"
-  readonly property string userConfigPath: home + "/.config/kestrel/shell.json"
-
-  // Bundled fallback so the shell can start even when the default shell.json is
-  // missing or unreadable. The bar config here mirrors the on-disk defaults
-  // closely enough to render a usable bar; not authoritative.
-  readonly property var builtinShellConfig: ({
-    version: 1,
-    idle: {
-      screensaver: 150,
-      lock: 300
-    },
-    bar: {
-      position: "top",
-      transparent: false,
-      centerAnchor: "kestrel.clock",
-      layout: {
-        left: [{ id: "kestrel.menu" }, { id: "kestrel.workspaces" }],
-        center: [{ id: "kestrel.clock", format: "dddd HH:mm" }],
-        right: [{ id: "kestrel.audio" }]
-      }
-    },
-    plugins: []
-  })
-
-  property var defaultsConfig: builtinShellConfig
-  property var shellConfig: builtinShellConfig
-
-  // Which bar the desktop mounts: the Kestrel quattro bar (default) or the
-  // vendored Orpheus product. Opt-in until Orpheus has been proven in the VM;
-  // an unknown value keeps the shipped bar.
-  readonly property string barStyle: shellConfig && shellConfig.barStyle === "orpheus" ? "orpheus" : "kestrel"
-  property bool pluginReloading: false
-  property bool pluginReloadPending: false
-
-  Timer {
-    id: localPluginReloadTimer
-    interval: 150
-    onTriggered: shell.reloadPlugins()
-  }
-
-  onShellConfigChanged: {
-    if (failedBarId !== "") failedBarId = ""
-    pluginRegistry.registryRevision++
-    pluginRegistry.pluginsChanged()
-  }
-
-  function applyShellConfig() {
-    // Decide which source is canonical: a valid user shell.json overrides
-    // defaults entirely; otherwise fall back to defaults. We do not deep-merge.
-    var defaults = Util.isPlainObject(defaultsConfig) ? defaultsConfig : builtinShellConfig
-    var user = null
-    var userText = userConfigFile.text() || ""
-    if (userText.trim()) {
-      try {
-        var parsed = JSON.parse(userText)
-        if (Util.isPlainObject(parsed) && parsed.version === 1) user = parsed
-        else if (Util.isPlainObject(parsed)) console.warn("shell.json missing version: 1, using defaults")
-      } catch (e) {
-        console.warn("shell.json parse failed, using defaults:", e)
-      }
+    id: root
+    // Keep native surfaces until Gokko's root has completed, not merely while
+    // its outer Store Scene exists; a nested load error must still fall back.
+    readonly property bool gokkoRunning: Config.barStyle === "gokko"
+        && BarProducts.gokkoReady
+    property var desktopLayersReady: ({})
+    function markDesktopLayerReady(name) {
+        const next = Object.assign({}, desktopLayersReady);
+        next[name] = true;
+        desktopLayersReady = next;
     }
-    shellConfig = user || defaults
-  }
-
-  function loadDefaults(raw) {
-    var text = String(raw || "").trim()
-    if (!text) {
-      defaultsConfig = builtinShellConfig
-      applyShellConfig()
-      return
+    readonly property bool docksMayMount: {
+        const screens = ShellState.screens;
+        if (!screens.length) return false;
+        for (const screen of screens)
+            if (!desktopLayersReady[screen.name]) return false;
+        return true;
     }
-    try {
-      var parsed = JSON.parse(text)
-      if (Util.isPlainObject(parsed) && parsed.version === 1) defaultsConfig = parsed
-      else defaultsConfig = builtinShellConfig
-    } catch (e) {
-      console.warn("default shell.json parse failed, using builtin:", e)
-      defaultsConfig = builtinShellConfig
-    }
-    applyShellConfig()
-  }
-
-  function persistShellConfig(nextConfig) {
-    var payload = JSON.parse(JSON.stringify(nextConfig))
-    payload.version = 1
-    shellConfig = payload
-    userConfigFile.setText(JSON.stringify(payload, null, 2) + "\n")
-  }
-
-  readonly property var barConfig: shellConfig && Util.isPlainObject(shellConfig.bar) ? shellConfig.bar : builtinShellConfig.bar
-  onBarConfigChanged: {
-    if (bar && "barConfig" in bar)
-      bar.barConfig = shell.barConfigFor(shell.activeBarManifest)
-  }
-  FileView {
-    id: defaultsFile
-    path: shell.defaultsPath
-    watchChanges: true
-    printErrors: false
-    onLoaded: shell.loadDefaults(text())
-    onLoadFailed: function(error) {
-      console.warn("default shell.json load failed: " + error + " path=" + shell.defaultsPath)
-      shell.loadDefaults("")
-    }
-    onFileChanged: reload()
-  }
-
-  FileView {
-    id: userConfigFile
-    path: shell.userConfigPath
-    watchChanges: true
-    atomicWrites: true
-    printErrors: false
-    onLoaded: shell.applyShellConfig()
-    onLoadFailed: function(error) { shell.applyShellConfig() }
-    onFileChanged: reload()
-  }
-
-  Component.onCompleted: {
-    console.log("kestrel-shell paths",
-      "kestrelPath=" + shell.kestrelPath,
-      "shellDir=" + Quickshell.shellDir,
-      "firstPartyPluginsDir=" + shell.firstPartyPluginsDir,
-      "defaultsPath=" + shell.defaultsPath,
-      "userConfigPath=" + shell.userConfigPath)
-    pluginRegistry.firstPartyDir = shell.firstPartyPluginsDir
-    pluginRegistry.shellConfigProvider = function() { return shell.shellConfig }
-    pluginRegistry.shellConfigMutator = function(mutate) { shell.mutateShellConfig(mutate) }
-    // PluginRegistry.ensureUserDir() runs in its own Component.onCompleted and
-    // chains rescan() once the directory exists. We also kick a scan here in
-    // case the user dir already existed at startup.
-    pluginRegistry.rescan()
-    shell._syncServices()
-  }
-
-  function mutateShellConfig(mutator) {
-    var copy = JSON.parse(JSON.stringify(shellConfig || builtinShellConfig))
-    mutator(copy)
-    persistShellConfig(copy)
-  }
-
-  // Exposed as a property so child plugins (notifications, future panels)
-  // can read barSize/barHidden/position to anchor relative to the active bar.
-  readonly property string defaultBarId: "kestrel.bar"
-  readonly property string selectedBarId: {
-    var config = shell.barConfig
-    if (Util.isPlainObject(config)) {
-      var configured = Util.canonicalWidgetId(String(config.id || ""))
-      if (configured) return configured
-    }
-    return shell.defaultBarId
-  }
-  property string failedBarId: ""
-  readonly property bool selectedBarAvailable: {
-    var revision = shell.pluginRegistry.registryRevision
-    return shell.barOptionAvailable(shell.selectedBarId)
-  }
-  readonly property string activeBarId: selectedBarId !== failedBarId && selectedBarAvailable ? selectedBarId : defaultBarId
-  readonly property var activeBarManifest: {
-    var revision = shell.pluginRegistry.registryRevision
-    return shell.barManifestFor(shell.activeBarId)
-  }
-  readonly property string activeBarSourceUrl: activeBarId === defaultBarId ? "" : shell.pluginRegistry.entryPointUrl(activeBarManifest, "bar")
-  property var bar: null
-
-  onSelectedBarIdChanged: if (failedBarId !== "") failedBarId = ""
-
-  function barManifestFor(pluginId) {
-    var plugins = shell.pluginRegistry ? shell.pluginRegistry.installedPlugins : null
-    return plugins ? plugins[String(pluginId || "")] || null : null
-  }
-
-  function isBarOptionManifest(manifest) {
-    return manifest
-      && Array.isArray(manifest.kinds)
-      && manifest.kinds.indexOf("bar") !== -1
-      && manifest.entryPoints
-      && manifest.entryPoints.bar
-  }
-
-  function barOptionAvailable(pluginId) {
-    var id = String(pluginId || "")
-    if (id === "" || id === shell.defaultBarId) return true
-    var manifest = shell.barManifestFor(id)
-    return shell.isBarOptionManifest(manifest) && shell.pluginRegistry.entryPointUrl(manifest, "bar") !== ""
-  }
-
-  function isActiveBarOption(pluginId) {
-    return String(pluginId || "") === shell.activeBarId
-  }
-
-  function configureBar(target, manifest) {
-    if (!target) return
-    if ("kestrelPath" in target) target.kestrelPath = shell.kestrelPath
-    if ("shell" in target) target.shell = shell.pluginShellFor(manifest)
-    if ("manifest" in target) target.manifest = shell.publicPluginManifest(manifest)
-    if ("barWidgetRegistry" in target) target.barWidgetRegistry = shell.pluginBarWidgetRegistryFor(manifest)
-    if ("pluginRegistry" in target) target.pluginRegistry = shell.pluginRegistryFor(manifest)
-    if ("barConfig" in target) target.barConfig = shell.barConfigFor(manifest)
-    shell.bar = target
-  }
-
-  Component {
-    id: defaultBarComponent
-
-    Bar {
-      kestrelPath: shell.kestrelPath
-      barWidgetRegistry: shell.barWidgetRegistry
-      barConfig: shell.barConfig
-      shell: shell
-      manifest: shell.barManifestFor(shell.defaultBarId)
-    }
-  }
-
-  // Orpheus draws its own bar per monitor (its Scene owns the layer windows),
-  // so it is mounted once per screen instead of through the single bar Loader.
-  Component {
-    id: orpheusBarComponent
-
-    Loader {
-      required property var modelData
-      source: "plugins/bar/orpheus/Scene.qml"
-      onLoaded: if (item) item.modelData = modelData
-    }
-  }
-
-  Variants {
-    model: shell.barStyle === "orpheus" ? Quickshell.screens : []
-    delegate: orpheusBarComponent
-  }
-
-  Loader {
-    id: defaultBarLoader
-
-    active: shell.barStyle !== "orpheus" && shell.activeBarId === shell.defaultBarId
-    sourceComponent: defaultBarComponent
-    onLoaded: shell.configureBar(item, shell.barManifestFor(shell.defaultBarId))
-    onActiveChanged: if (!active && shell.activeBarId !== shell.defaultBarId) shell.bar = null
-  }
-
-  Loader {
-    id: pluginBarLoader
-
-    active: !shell.pluginReloading && shell.activeBarId !== shell.defaultBarId && shell.activeBarSourceUrl !== ""
-    source: shell.activeBarId !== shell.defaultBarId ? shell.activeBarSourceUrl : ""
-    asynchronous: true
-    onLoaded: shell.configureBar(item, shell.activeBarManifest)
-    onActiveChanged: if (!active) shell.bar = null
-    onStatusChanged: {
-      if (status === Loader.Error) {
-        console.warn("bar option " + shell.activeBarId + " failed to load, falling back to " + shell.defaultBarId)
-        shell.failedBarId = shell.activeBarId
-      }
-    }
-  }
-
-  // ------------------------------------------------------------- services
-  //
-  // Generic loader for any enabled plugin that declares kind "service".
-  // First-party infrastructure services are implicitly enabled by the registry;
-  // third-party services are enabled by adding the plugin id to shell.json.
-  Item {
-    id: serviceHost
-    visible: false
-  }
-
-  property var _services: ({})
-  property var _pluginShellApis: ({})
-  property var _pluginShellApiDescriptors: ({})
-  property var _pluginBarEntryShellApis: ({})
-  property var _pluginRegistryApis: ({})
-  property var _pluginBarWidgetRegistryApis: ({})
-  property var _pluginAppLibraryApis: ({})
-  property var _pluginBarStateApis: ({})
-  property var _pluginFirstPartyServiceApis: ({})
-
-  Component {
-    id: pluginShellApiComponent
-    PluginShellApi { }
-  }
-
-  Component {
-    id: pluginRegistryApiComponent
-    PluginRegistryApi { }
-  }
-
-  Component {
-    id: pluginBarWidgetRegistryApiComponent
-    PluginBarWidgetRegistryApi { }
-  }
-
-  Component {
-    id: pluginAppLibraryApiComponent
-    PluginAppLibraryApi { }
-  }
-
-  Component {
-    id: pluginBarStateApiComponent
-    PluginBarStateApi { }
-  }
-
-  Component {
-    id: pluginFirstPartyServiceApiComponent
-    PluginFirstPartyServiceApi { }
-  }
-
-  function publicPluginManifest(manifest) {
-    if (!manifest) return null
-    if (manifest.__isFirstParty) return manifest
-    var copy = JSON.parse(JSON.stringify(manifest))
-    // Keep __sourceDir: third-party plugins find their bundled scripts through it.
-    // Only the host trust markers are withheld.
-    delete copy.__isFirstParty
-    delete copy.__hostCapabilities
-    return copy
-  }
-
-  function publicBarConfig() {
-    return JSON.parse(JSON.stringify(shell.barConfig || {}))
-  }
-
-  function barConfigFor(manifest) {
-    return !manifest || manifest.__isFirstParty
-      ? shell.barConfig : shell.publicBarConfig()
-  }
-
-  function publicBarWidgetSnapshot() {
-    var source = shell.barWidgetRegistry.widgets || {}
-    var snapshot = {}
-    for (var id in source) {
-      var entry = source[id]
-      if (!entry) continue
-      snapshot[id] = {
-        component: entry.component,
-        metadata: JSON.parse(JSON.stringify(entry.metadata || {}))
-      }
-    }
-    return snapshot
-  }
-
-  function manifestHasKind(manifest, kind) {
-    return !!manifest && Array.isArray(manifest.kinds)
-      && manifest.kinds.indexOf(kind) !== -1
-  }
-
-  function pluginHasBarCapabilities(manifest) {
-    return shell.manifestHasKind(manifest, "bar")
-  }
-
-  function publicIdleConfigFor(manifest) {
-    var metadata = manifest && Util.isPlainObject(manifest.kestrel) ? manifest.kestrel : null
-    if (!metadata || String(metadata.clonedFrom || "") !== "kestrel.idle") return ({})
-    var idle = shell.shellConfig && Util.isPlainObject(shell.shellConfig.idle)
-      ? shell.shellConfig.idle : ({})
-    return JSON.parse(JSON.stringify(idle))
-  }
-
-  function pluginCloneMaySummon(manifest, requestedId) {
-    var metadata = manifest && Util.isPlainObject(manifest.kestrel) ? manifest.kestrel : null
-    var sourceId = metadata ? String(metadata.clonedFrom || "") : ""
-    var allowed = {
-      "kestrel.audio": ["kestrel.osd"],
-      "kestrel.media": ["kestrel.osd"],
-      "kestrel.monitor": ["kestrel.osd"],
-      "kestrel.network": ["kestrel.speedtest", "kestrel.wifiqr"]
-    }
-    var targets = allowed[sourceId] || []
-    return targets.indexOf(String(requestedId || "")) !== -1
-  }
-
-  function pluginOwnsTarget(pluginId, requestedId) {
-    var caller = String(pluginId || "")
-    if (!caller) return false
-    return shell.pluginRegistry.resolveEnabledId(String(requestedId || "")) === caller
-  }
-
-  function pluginServiceFor(pluginId, requestedId) {
-    if (!shell.pluginOwnsTarget(pluginId, requestedId)) return null
-    return shell.serviceFor(shell.pluginRegistry.resolveEnabledId(requestedId))
-  }
-
-  function barEntryConfigured(pluginId) {
-    var location = shell.pluginRegistry.findEntryLocation(shell.shellConfig, pluginId)
-    return location && location.kind === "bar"
-  }
-
-  function barPluginMayControl(manifest, requestedId) {
-    if (!shell.pluginHasBarCapabilities(manifest)) return false
-    var id = shell.pluginRegistry.resolveEnabledId(String(requestedId || ""))
-    var target = shell.pluginRegistry.installedPlugins[id]
-    if (!target || shell.isAuthenticationService(target, id)) return false
-    if (shell.barEntryConfigured(id)) return true
-    var uiKinds = ["bar-widget", "panel", "overlay", "menu"]
-    for (var i = 0; i < uiKinds.length; i++)
-      if (shell.manifestHasKind(target, uiKinds[i])) return true
-    return false
-  }
-
-  function mutatePluginBarConfig(mutator) {
-    if (typeof mutator !== "function") return false
-    shell.mutateShellConfig(function(config) {
-      var scoped = { bar: JSON.parse(JSON.stringify(config.bar || {})) }
-      mutator(scoped)
-      if (Util.isPlainObject(scoped.bar)) config.bar = JSON.parse(JSON.stringify(scoped.bar))
-    })
-    return true
-  }
-
-  function pluginAppLibraryFor(cacheKey, pluginId) {
-    if (_pluginAppLibraryApis[cacheKey]) return _pluginAppLibraryApis[cacheKey]
-    var api = pluginAppLibraryApiComponent.createObject(null, {
-      ownerPluginId: pluginId,
-      _entryName: function(entry) { return shell.appLibrary.entryName(entry) },
-      _entrySubtext: function(entry) { return shell.appLibrary.entrySubtext(entry) },
-      _sortedEntries: function(query) { return shell.appLibrary.sortedEntries(query) },
-      _iconSource: function(icon) { return shell.appLibrary.iconSource(icon) },
-      _refreshIcons: function() { shell.appLibrary.refreshIcons() },
-      _launch: function(desktopId, name) { shell.appLibrary.launch(desktopId, name) },
-      _remove: function(desktopId, name) { shell.appLibrary.remove(desktopId, name) }
-    })
-    if (!api) return null
-    var next = ({})
-    for (var id in _pluginAppLibraryApis) next[id] = _pluginAppLibraryApis[id]
-    next[cacheKey] = api
-    _pluginAppLibraryApis = next
-    return api
-  }
-
-  function pluginBarStateFor(cacheKey, pluginId) {
-    if (_pluginBarStateApis[cacheKey]) return _pluginBarStateApis[cacheKey]
-    var api = pluginBarStateApiComponent.createObject(null, { ownerPluginId: pluginId })
-    if (!api) return null
-    api.barHidden = Qt.binding(function() { return shell.bar ? shell.bar.barHidden === true : false })
-    api.barSize = Qt.binding(function() { return shell.bar ? Math.max(0, shell.bar.barSize || 0) : 0 })
-    api.fontFamily = Qt.binding(function() { return shell.bar ? String(shell.bar.fontFamily || "") : "" })
-    api.position = Qt.binding(function() { return shell.bar ? String(shell.bar.position || "top") : "top" })
-    var next = ({})
-    for (var id in _pluginBarStateApis) next[id] = _pluginBarStateApis[id]
-    next[cacheKey] = api
-    _pluginBarStateApis = next
-    return api
-  }
-
-  function pluginFirstPartyServiceFor(cacheKey, pluginId, requestedId) {
-    var id = String(requestedId || "")
-    var allowed = ["kestrel.idle", "kestrel.media", "kestrel.nightlight", "kestrel.notifications"]
-    if (allowed.indexOf(id) === -1) return null
-    var proxyKey = cacheKey + "::" + id
-    if (_pluginFirstPartyServiceApis[proxyKey]) return _pluginFirstPartyServiceApis[proxyKey]
-
-    function service() {
-      return shell.serviceFor(shell.pluginRegistry.resolveEnabledId(id))
-    }
-    var api = pluginFirstPartyServiceApiComponent.createObject(null, {
-      ownerPluginId: pluginId,
-      serviceId: id,
-      _setIdleEnabled: function(value) {
-        var target = service()
-        if (target && typeof target.setIdleEnabled === "function") target.setIdleEnabled(value)
-      },
-      _setNightlight: function(value) {
-        var target = service()
-        if (target && typeof target.setNightlight === "function") target.setNightlight(value)
-      },
-      _setDoNotDisturb: function(value) {
-        var target = service()
-        if (target && typeof target.setDoNotDisturb === "function") target.setDoNotDisturb(value)
-      },
-      _runAction: function(action, showFeedback, targetKey) {
-        var target = service()
-        if (target && typeof target.runAction === "function") target.runAction(action, showFeedback, targetKey)
-      },
-      _playerKey: function(player) {
-        var target = service()
-        return target && typeof target.playerKey === "function" ? target.playerKey(player) : ""
-      },
-      _selectPlayer: function(playerKey) {
-        var target = service()
-        if (target && typeof target.selectPlayer === "function") target.selectPlayer(playerKey)
-      }
-    })
-    if (!api) return null
-    api.stayAwake = Qt.binding(function() {
-      var target = service()
-      return target ? target.stayAwake === true : false
-    })
-    api.enabled = Qt.binding(function() {
-      var target = service()
-      return target ? target.enabled === true : false
-    })
-    api.doNotDisturb = Qt.binding(function() {
-      var target = service()
-      return target ? target.doNotDisturb === true : false
-    })
-    api.activePlayer = Qt.binding(function() {
-      var target = service()
-      return target ? target.activePlayer : null
-    })
-    api.sourcePlayers = Qt.binding(function() {
-      var target = service()
-      return target && Array.isArray(target.sourcePlayers) ? target.sourcePlayers : []
-    })
-    var next = ({})
-    for (var existing in _pluginFirstPartyServiceApis) next[existing] = _pluginFirstPartyServiceApis[existing]
-    next[proxyKey] = api
-    _pluginFirstPartyServiceApis = next
-    return api
-  }
-
-  function pluginShellCapabilityProfile(manifest, allowOwnService, barCapabilities) {
-    return [
-      allowOwnService ? "own-service" : "no-own-service",
-      barCapabilities ? "bar" : "no-bar",
-      shell.manifestHasKind(manifest, "menu") ? "menu" : "no-menu"
-    ].join("|")
-  }
-
-  function cacheWithoutKey(cache, key, destroyValue) {
-    var next = ({})
-    for (var existing in cache) {
-      if (existing === key) {
-        var value = cache[existing]
-        if (destroyValue && value && typeof value.destroy === "function") value.destroy()
-      } else {
-        next[existing] = cache[existing]
-      }
-    }
-    return next
-  }
-
-  function cacheWithoutPrefix(cache, prefix) {
-    var next = ({})
-    for (var existing in cache) {
-      if (existing.indexOf(prefix) === 0) {
-        var value = cache[existing]
-        if (value && typeof value.destroy === "function") value.destroy()
-      } else {
-        next[existing] = cache[existing]
-      }
-    }
-    return next
-  }
-
-  function revokePluginShellApi(cacheKey) {
-    var key = String(cacheKey || "")
-    if (!key) return
-    _pluginAppLibraryApis = shell.cacheWithoutKey(_pluginAppLibraryApis, key, true)
-    _pluginFirstPartyServiceApis = shell.cacheWithoutPrefix(_pluginFirstPartyServiceApis, key + "::")
-    _pluginBarEntryShellApis = shell.cacheWithoutPrefix(_pluginBarEntryShellApis, key + ":")
-    _pluginShellApis = shell.cacheWithoutKey(_pluginShellApis, key, true)
-    _pluginShellApiDescriptors = shell.cacheWithoutKey(_pluginShellApiDescriptors, key, false)
-  }
-
-  function createScopedPluginShell(manifest, cacheKey, allowOwnService, barCapabilities) {
-    var key = String(manifest && manifest.id || "")
-    if (!key) return null
-    var profile = shell.pluginShellCapabilityProfile(manifest, allowOwnService, barCapabilities)
-    var cached = _pluginShellApis[cacheKey]
-    var descriptor = _pluginShellApiDescriptors[cacheKey]
-    if (cached && descriptor && descriptor.pluginId === key
-        && descriptor.profile === profile) return cached
-    if (cached || descriptor) shell.revokePluginShellApi(cacheKey)
-
-    function currentManifest() {
-      return shell.pluginRegistry.installedPlugins[key] || null
-    }
-
-    function hasCurrentBarCapabilities() {
-      return barCapabilities && shell.pluginHasBarCapabilities(currentManifest())
-    }
-
-    // Construct the narrow service proxies before any plugin binding can call
-    // firstPartyServiceFor(). Creating a QObject while evaluating that binding
-    // makes QML re-enter the binding and report a loop on the caller's service
-    // property, even though the resulting proxy is otherwise acyclic.
-    var firstPartyServices = ({})
-    if (barCapabilities) {
-      var serviceIds = ["kestrel.idle", "kestrel.media", "kestrel.nightlight", "kestrel.notifications"]
-      for (var i = 0; i < serviceIds.length; i++) {
-        var serviceId = serviceIds[i]
-        firstPartyServices[serviceId] = shell.pluginFirstPartyServiceFor(cacheKey, key, serviceId)
-      }
-    }
-
-    var api = pluginShellApiComponent.createObject(null, {
-      pluginId: key,
-      appLibrary: shell.manifestHasKind(manifest, "menu")
-        ? shell.pluginAppLibraryFor(cacheKey, key) : null,
-      bar: shell.pluginBarStateFor(cacheKey, key),
-      barConfig: shell.publicBarConfig(),
-      idleConfig: shell.publicIdleConfigFor(manifest),
-      _serviceLookup: function(requestedId) {
-        return allowOwnService ? shell.pluginServiceFor(key, requestedId) : null
-      },
-      _firstPartyServiceLookup: function(requestedId) {
-        if (allowOwnService && shell.pluginOwnsTarget(key, requestedId))
-          return shell.pluginServiceFor(key, requestedId)
-        return hasCurrentBarCapabilities() ? (firstPartyServices[requestedId] || null) : null
-      },
-      _barEntryShellLookup: function(ownerId, moduleName) {
-        return hasCurrentBarCapabilities()
-          ? shell.pluginShellForBarEntry(cacheKey + ":" + ownerId, moduleName) : null
-      },
-      _summon: function(requestedId, payloadJson) {
-        if (!shell.pluginOwnsTarget(key, requestedId)
-            && !shell.barPluginMayControl(currentManifest(), requestedId)
-            && !shell.pluginCloneMaySummon(currentManifest(), requestedId)) return false
-        return shell.summon(shell.pluginRegistry.resolveEnabledId(requestedId), payloadJson)
-      },
-      _hide: function(requestedId) {
-        if (!shell.pluginOwnsTarget(key, requestedId)
-            && !shell.barPluginMayControl(currentManifest(), requestedId)) return false
-        return shell.hide(shell.pluginRegistry.resolveEnabledId(requestedId))
-      },
-      _toggle: function(requestedId, payloadJson) {
-        if (!shell.pluginOwnsTarget(key, requestedId)
-            && !shell.barPluginMayControl(currentManifest(), requestedId)) return false
-        return shell.toggle(shell.pluginRegistry.resolveEnabledId(requestedId), payloadJson)
-      },
-      _isOpen: function(requestedId) {
-        if (!shell.pluginOwnsTarget(key, requestedId)
-            && !shell.barPluginMayControl(currentManifest(), requestedId)) return false
-        return shell.isPluginOpen(shell.pluginRegistry.resolveEnabledId(requestedId))
-      },
-      _updateSettings: function(requestedId, settings) {
-        if (shell.pluginOwnsTarget(key, requestedId)) return shell.updateEntryInline(key, settings)
-        if (hasCurrentBarCapabilities() && shell.barEntryConfigured(requestedId))
-          return shell.updateEntryInline(requestedId, settings)
-        return false
-      },
-      _mutateBarConfig: function(mutator) {
-        return hasCurrentBarCapabilities() ? shell.mutatePluginBarConfig(mutator) : false
-      }
-    })
-    if (!api) return null
-
-    var next = ({})
-    for (var id in _pluginShellApis) next[id] = _pluginShellApis[id]
-    next[cacheKey] = api
-    _pluginShellApis = next
-    var descriptorNext = ({})
-    for (var descriptorKey in _pluginShellApiDescriptors)
-      descriptorNext[descriptorKey] = _pluginShellApiDescriptors[descriptorKey]
-    descriptorNext[cacheKey] = {
-      pluginId: key,
-      allowOwnService: allowOwnService === true,
-      profile: profile
-    }
-    _pluginShellApiDescriptors = descriptorNext
-    return api
-  }
-
-  function scopedPluginShellForId(pluginId) {
-    var key = String(pluginId || "")
-    var manifest = shell.pluginRegistry.installedPlugins[key]
-    if (!manifest) return null
-    if (!manifest.__isFirstParty) return shell.pluginShellFor(manifest)
-    return shell.createScopedPluginShell(manifest, "hosted:" + key, false, false)
-  }
-
-  function pluginShellForId(pluginId) {
-    return shell.scopedPluginShellForId(pluginId)
-  }
-
-  function pluginShellForBarEntry(ownerId, moduleName) {
-    var owner = String(ownerId || "")
-    var target = String(moduleName || "")
-    if (!owner || !target) return null
-    if (!shell.barEntryConfigured(target)) return null
-    var cacheKey = owner + "::" + target
-    if (_pluginBarEntryShellApis[cacheKey]) return _pluginBarEntryShellApis[cacheKey]
-
-    function owns(requestedId) {
-      return shell.pluginRegistry.resolveEnabledId(String(requestedId || ""))
-        === shell.pluginRegistry.resolveEnabledId(target)
-    }
-
-    function currentManifest() {
-      var id = shell.pluginRegistry.resolveEnabledId(target)
-      return shell.pluginRegistry.installedPlugins[id] || null
-    }
-
-    var api = pluginShellApiComponent.createObject(null, {
-      pluginId: target,
-      barConfig: shell.publicBarConfig(),
-      _summon: function(requestedId, payloadJson) {
-        if (!owns(requestedId)
-            && !shell.pluginCloneMaySummon(currentManifest(), requestedId)) return false
-        return shell.summon(shell.pluginRegistry.resolveEnabledId(requestedId), payloadJson)
-      },
-      _hide: function(requestedId) {
-        return owns(requestedId)
-          ? shell.hide(shell.pluginRegistry.resolveEnabledId(target)) : false
-      },
-      _toggle: function(requestedId, payloadJson) {
-        return owns(requestedId)
-          ? shell.toggle(shell.pluginRegistry.resolveEnabledId(target), payloadJson) : false
-      },
-      _isOpen: function(requestedId) {
-        return owns(requestedId)
-          ? shell.isPluginOpen(shell.pluginRegistry.resolveEnabledId(target)) : false
-      },
-      _updateSettings: function(requestedId, settings) {
-        return String(requestedId || "") === target
-          ? shell.updateEntryInline(target, settings) : false
-      }
-    })
-    if (!api) return null
-    var next = ({})
-    for (var id in _pluginBarEntryShellApis) next[id] = _pluginBarEntryShellApis[id]
-    next[cacheKey] = api
-    _pluginBarEntryShellApis = next
-    return api
-  }
-
-  function pluginShellFor(manifest) {
-    if (!manifest || manifest.__isFirstParty) return shell
-    var key = String(manifest.id || "")
-    if (!key) return null
-    return shell.createScopedPluginShell(manifest, key, true, shell.pluginHasBarCapabilities(manifest))
-  }
-
-  function pluginRegistryFor(manifest) {
-    if (!manifest || manifest.__isFirstParty) return shell.pluginRegistry
-    var key = String(manifest.id || "")
-    if (!key) return null
-    if (_pluginRegistryApis[key]) return _pluginRegistryApis[key]
-
-    var api = pluginRegistryApiComponent.createObject(null, {
-      pluginId: key,
-      manifest: shell.publicPluginManifest(manifest),
-      enabled: shell.pluginRegistry.isEnabled(key),
-      _entryPointUrl: function(kind) {
-        var current = shell.pluginRegistry.installedPlugins[key]
-        return current ? shell.pluginRegistry.entryPointUrl(current, kind) : ""
-      }
-    })
-    if (!api) return null
-
-    var next = ({})
-    for (var id in _pluginRegistryApis) next[id] = _pluginRegistryApis[id]
-    next[key] = api
-    _pluginRegistryApis = next
-    return api
-  }
-
-  function pluginBarWidgetRegistryFor(manifest) {
-    if (!manifest || manifest.__isFirstParty) return shell.barWidgetRegistry
-    var key = String(manifest.id || "")
-    if (!key) return null
-    if (_pluginBarWidgetRegistryApis[key]) return _pluginBarWidgetRegistryApis[key]
-
-    var api = pluginBarWidgetRegistryApiComponent.createObject(null, {
-      widgets: shell.publicBarWidgetSnapshot(),
-      revision: shell.barWidgetRegistry.revision
-    })
-    if (!api) return null
-
-    var next = ({})
-    for (var id in _pluginBarWidgetRegistryApis) next[id] = _pluginBarWidgetRegistryApis[id]
-    next[key] = api
-    _pluginBarWidgetRegistryApis = next
-    return api
-  }
-
-  function pluginApiActive(api, plugins) {
-    var id = api ? String(api.pluginId || api.ownerPluginId || "") : ""
-    var manifest = id ? plugins[id] : null
-    return !!manifest && shell.pluginRegistry.isEnabled(id)
-  }
-
-  function prunePluginApis() {
-    var plugins = shell.pluginRegistry.installedPlugins
-    var shellKeys = Object.keys(_pluginShellApis)
-    for (var si = 0; si < shellKeys.length; si++) {
-      var shellKey = shellKeys[si]
-      var shellApi = _pluginShellApis[shellKey]
-      var descriptor = _pluginShellApiDescriptors[shellKey]
-      var manifest = descriptor ? plugins[descriptor.pluginId] : null
-      var barCapabilities = descriptor && descriptor.allowOwnService
-        && shell.pluginHasBarCapabilities(manifest)
-      var expectedProfile = descriptor
-        ? shell.pluginShellCapabilityProfile(manifest, descriptor.allowOwnService, barCapabilities) : ""
-      var active = descriptor && manifest && shell.pluginRegistry.isEnabled(descriptor.pluginId)
-      if (!active || descriptor.profile !== expectedProfile)
-        shell.revokePluginShellApi(shellKey)
-    }
-
-    var registryNext = ({})
-    for (var registryKey in _pluginRegistryApis) {
-      var registryApi = _pluginRegistryApis[registryKey]
-      if (shell.pluginApiActive(registryApi, plugins)) registryNext[registryKey] = registryApi
-      else if (registryApi && typeof registryApi.destroy === "function") registryApi.destroy()
-    }
-    _pluginRegistryApis = registryNext
-
-    var widgetNext = ({})
-    for (var widgetKey in _pluginBarWidgetRegistryApis) {
-      var widgetApi = _pluginBarWidgetRegistryApis[widgetKey]
-      if (plugins[widgetKey] && shell.pluginRegistry.isEnabled(widgetKey)) widgetNext[widgetKey] = widgetApi
-      else if (widgetApi && typeof widgetApi.destroy === "function") widgetApi.destroy()
-    }
-    _pluginBarWidgetRegistryApis = widgetNext
-
-    var appNext = ({})
-    for (var appKey in _pluginAppLibraryApis) {
-      var appApi = _pluginAppLibraryApis[appKey]
-      if (shell.pluginApiActive(appApi, plugins)) appNext[appKey] = appApi
-      else if (appApi && typeof appApi.destroy === "function") appApi.destroy()
-    }
-    _pluginAppLibraryApis = appNext
-
-    var barStateNext = ({})
-    for (var barStateKey in _pluginBarStateApis) {
-      var barStateApi = _pluginBarStateApis[barStateKey]
-      if (shell.pluginApiActive(barStateApi, plugins)) barStateNext[barStateKey] = barStateApi
-      else if (barStateApi && typeof barStateApi.destroy === "function") barStateApi.destroy()
-    }
-    _pluginBarStateApis = barStateNext
-
-    var serviceNext = ({})
-    for (var serviceKey in _pluginFirstPartyServiceApis) {
-      var serviceApi = _pluginFirstPartyServiceApis[serviceKey]
-      if (shell.pluginApiActive(serviceApi, plugins)) serviceNext[serviceKey] = serviceApi
-      else if (serviceApi && typeof serviceApi.destroy === "function") serviceApi.destroy()
-    }
-    _pluginFirstPartyServiceApis = serviceNext
-
-    var entryNext = ({})
-    for (var entryKey in _pluginBarEntryShellApis) {
-      var entryApi = _pluginBarEntryShellApis[entryKey]
-      if (entryApi && shell.barEntryConfigured(entryApi.pluginId)) entryNext[entryKey] = entryApi
-      else if (entryApi && typeof entryApi.destroy === "function") entryApi.destroy()
-    }
-    _pluginBarEntryShellApis = entryNext
-  }
-
-  function syncPluginApis() {
-    shell.prunePluginApis()
-    var plugins = shell.pluginRegistry.installedPlugins
-    for (var id in _pluginRegistryApis) {
-      var registryApi = _pluginRegistryApis[id]
-      var manifest = plugins[id]
-      registryApi.manifest = shell.publicPluginManifest(manifest)
-      registryApi.enabled = !!manifest && shell.pluginRegistry.isEnabled(id)
-    }
-    for (var widgetId in _pluginBarWidgetRegistryApis) {
-      var widgetApi = _pluginBarWidgetRegistryApis[widgetId]
-      widgetApi.widgets = shell.publicBarWidgetSnapshot()
-      widgetApi.revision = shell.barWidgetRegistry.revision
-    }
-    for (var shellKey in _pluginShellApis) {
-      var shellApi = _pluginShellApis[shellKey]
-      var descriptor = _pluginShellApiDescriptors[shellKey]
-      var shellManifest = descriptor ? plugins[descriptor.pluginId] : null
-      shellApi.barConfig = shell.publicBarConfig()
-      shellApi.idleConfig = shell.publicIdleConfigFor(shellManifest)
-    }
-    for (var entryKey in _pluginBarEntryShellApis)
-      _pluginBarEntryShellApis[entryKey].barConfig = shell.publicBarConfig()
-  }
-
-  // Reassigned as each service registers, so a binding that reads this before
-  // looking a service up by id re-evaluates once that service exists.
-  readonly property var services: _services
-
-  function serviceFor(pluginId) {
-    return _services[String(pluginId)] || null
-  }
-
-  function firstPartyServiceFor(pluginId) {
-    return serviceFor(shell.pluginRegistry.resolveEnabledId(pluginId))
-  }
-
-  function isAuthenticationService(manifest, pluginId) {
-    var key = String(pluginId || (manifest && manifest.id) || "")
-    return AuthServiceStore.isTrusted(key)
-      || (!!manifest && Array.isArray(manifest.__hostCapabilities)
-        && manifest.__hostCapabilities.indexOf("authentication") !== -1)
-  }
-
-  function ensureService(pluginId) {
-    var key = String(pluginId)
-    if (_services[key]) return _services[key]
-    var manifest = pluginRegistry && pluginRegistry.installedPlugins
-      ? pluginRegistry.installedPlugins[key] : null
-    if (!manifest) return null
-    if (!Array.isArray(manifest.kinds) || manifest.kinds.indexOf("service") === -1) return null
-    if (!manifest.entryPoints || !manifest.entryPoints.service) return null
-    var url = pluginRegistry.entryPointUrl(manifest, "service")
-    if (!url) return null
-    var authenticationService = shell.isAuthenticationService(manifest, key)
-    if (authenticationService && AuthServiceStore.has(key)) return null
-
-    var comp = Qt.createComponent(url, Component.PreferSynchronous)
-    function finalize() {
-      if (comp.status !== Component.Ready) {
-        console.warn("service plugin load failed for " + key + ": " + comp.errorString())
-        return
-      }
-      // Authentication services and third-party services have no visual
-      // parent. Parenting either to serviceHost would let a plugin's object
-      // traversal walk between the host and credential-bearing QML.
-      var inst = comp.createObject(manifest.__isFirstParty && !authenticationService ? serviceHost : null)
-      if (!inst) {
-        console.warn("service plugin createObject returned null for", key)
-        return
-      }
-      if ("kestrelPath" in inst) inst.kestrelPath = shell.kestrelPath
-      if ("shell" in inst) inst.shell = shell.pluginShellFor(manifest)
-      if ("manifest" in inst) inst.manifest = shell.publicPluginManifest(manifest)
-      if ("barWidgetRegistry" in inst) inst.barWidgetRegistry = shell.pluginBarWidgetRegistryFor(manifest)
-      if ("pluginRegistry" in inst) inst.pluginRegistry = shell.pluginRegistryFor(manifest)
-      if (authenticationService) {
-        // Never publish lock/polkit through ShellRoot._services. The private JS
-        // import retains their lifetime without adding a traversable property
-        // or QObject parent back to the host shell.
-        AuthServiceStore.put(key, inst)
-      } else {
-        var snext = ({})
-        for (var sk in _services) snext[sk] = _services[sk]
-        snext[key] = inst
-        _services = snext
-      }
-    }
-    if (comp.status === Component.Loading) {
-      comp.statusChanged.connect(finalize)
-      return null
-    }
-    finalize()
-    return authenticationService ? null : (_services[key] || null)
-  }
-
-  function _syncServices() {
-    if (!pluginRegistry || !pluginRegistry.installedPlugins) return
-    var plugins = pluginRegistry.installedPlugins
-    for (var id in plugins) {
-      var m = plugins[id]
-      if (!m) continue
-      if (!Array.isArray(m.kinds) || m.kinds.indexOf("service") === -1) continue
-      if (!m.entryPoints || !m.entryPoints.service) continue
-      if (!pluginRegistry.isEnabled(id)) continue
-      var authenticationService = shell.isAuthenticationService(m, id)
-      if (_services[id]) {
-        if (authenticationService) {
-          // A service that gains a trusted authentication capability must move
-          // out of the host's public service map before it is recreated.
-          var published = _services[id]
-          if (published && typeof published.destroy === "function") published.destroy()
-          var withoutPublished = ({})
-          for (var publishedId in _services)
-            if (publishedId !== id) withoutPublished[publishedId] = _services[publishedId]
-          _services = withoutPublished
-        } else {
-          // A kept instance outlives the rescan; hand it the fresh manifest.
-          var kept = _services[id]
-          if (kept && "shell" in kept) kept.shell = shell.pluginShellFor(m)
-          if (kept && "manifest" in kept) kept.manifest = shell.publicPluginManifest(m)
-          continue
+    // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
+    // the notification column), armed 1.5 s into boot so a keypress or an
+    // arriving toast never waits on a component build. Everything heavier is
+    // built on its own first open and torn down a grace period after every
+    // close, so nothing parses, instantiates or commits for a surface nobody
+    // asked for. The grace is what protects the animations: a surface is only
+    // ever destroyed while it sits closed.
+    property int warm: 0
+    Timer { interval: 1500; running: true; repeat: false; onTriggered: root.warm = 1 }
+
+    // Construct the shared services (ShellState's per-monitor state now, heavier
+    // providers as surfaces migrate) at load rather than on the first keybind.
+    // This Quickshell build has no Scope type, so ServiceLoader cannot
+    // instantiate; construct the same service singletons eagerly here.
+    Item {
+        visible: false
+        width: 0
+        height: 0
+        Component.onCompleted: {
+            void ShellState;
+            void ScreenTime;
+            void Keypresses;
+            void KeyboardLayout;
+            void BatteryAlerts;
         }
-      }
-      if (AuthServiceStore.has(id)) {
-        if (authenticationService) {
-          AuthServiceStore.updateManifest(id, shell.publicPluginManifest(m))
-          continue
+    }
+
+    // The bridge stays resident even when phone support is off so Kit always
+    // has a current install state and can turn the feature on.
+    // PhoneBridge is not ported to this build yet.
+
+    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-reload-cover.json"
+    readonly property string reloadCoverBin: Quickshell.env("RYOKU_SHELL_DIR")
+        ? Quickshell.env("RYOKU_SHELL_DIR") + "/scripts/ryoku-reload-cover"
+        : "ryoku-reload-cover"
+    property string reloadToken: ""
+    property bool reloadFinishSent: false
+    property bool reloadReleaseArmed: false
+    property var reloadScreens: ({})
+    function setReloadScreenReady(name: string, ready: bool): void {
+        var next = ({});
+        for (var key in reloadScreens)
+            next[key] = reloadScreens[key];
+        next[name] = ready;
+        reloadScreens = next;
+        finishReloadCover();
+    }
+    function finishReloadCover(): void {
+        if (!reloadToken || reloadFinishSent)
+            return;
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            var screen = Quickshell.screens[i];
+            if (!screen || !reloadScreens[screen.name])
+                return;
         }
-        // A service that loses its trusted authentication capability can move
-        // back to the ordinary service map only after the isolated copy dies.
-        AuthServiceStore.destroy(id)
-      }
-      ensureService(id)
-    }
-    // Drop services for plugins that have been disabled or removed, or that
-    // no longer declare a service entry point.
-    for (var existingId in _services) {
-      var stillThere = plugins[existingId]
-      var stillService = stillThere && Array.isArray(stillThere.kinds)
-        && stillThere.kinds.indexOf("service") !== -1
-        && stillThere.entryPoints && stillThere.entryPoints.service
-      var stillEnabled = stillThere && pluginRegistry.isEnabled(existingId)
-      if (stillService && stillEnabled) continue
-      var inst = _services[existingId]
-      if (inst && typeof inst.destroy === "function") inst.destroy()
-      var next = ({})
-      for (var k in _services) if (k !== existingId) next[k] = _services[k]
-      _services = next
-    }
-    // Authentication services are retained outside the root object graph, so
-    // reconcile their disable/remove lifecycle separately from _services.
-    var authenticationIds = AuthServiceStore.ids()
-    for (var ai = 0; ai < authenticationIds.length; ai++) {
-      var authenticationId = authenticationIds[ai]
-      var authenticationManifest = plugins[authenticationId]
-      var stillAuthenticationService = authenticationManifest
-        && Array.isArray(authenticationManifest.kinds)
-        && authenticationManifest.kinds.indexOf("service") !== -1
-        && authenticationManifest.entryPoints
-        && authenticationManifest.entryPoints.service
-      if (stillAuthenticationService && pluginRegistry.isEnabled(authenticationId)
-          && shell.isAuthenticationService(authenticationManifest, authenticationId)) continue
-      AuthServiceStore.destroy(authenticationId)
-    }
-  }
-
-  function serviceKeepLoaded(pluginId) {
-    var plugins = pluginRegistry && pluginRegistry.installedPlugins
-    var manifest = plugins ? plugins[pluginId] : null
-    return !!(manifest && manifest.keepLoaded === true)
-  }
-
-  // keepLoaded services (lock, idle, polkit) must survive plugin hot-reload.
-  // Destroying kestrel.lock drops the ext-session-lock client while Hyprland
-  // still holds the lock, which surfaces the crashed-lockscreen fallback.
-  function unloadPluginServices() {
-    var next = ({})
-    for (var existingId in _services) {
-      if (serviceKeepLoaded(existingId)) {
-        next[existingId] = _services[existingId]
-        continue
-      }
-      var inst = _services[existingId]
-      if (inst && typeof inst.destroy === "function") inst.destroy()
-    }
-    _services = next
-    var authenticationIds = AuthServiceStore.ids()
-    for (var ai = 0; ai < authenticationIds.length; ai++) {
-      var authenticationId = authenticationIds[ai]
-      if (!serviceKeepLoaded(authenticationId))
-        AuthServiceStore.destroy(authenticationId)
-    }
-  }
-
-  Connections {
-    target: shell.pluginRegistry
-    function onPluginsChanged() {
-      shell.syncPluginApis()
-      if (!shell.pluginReloading) shell._syncServices()
-    }
-  }
-
-  Connections {
-    target: shell.barWidgetRegistry
-    function onChanged() { shell.syncPluginApis() }
-  }
-
-  Connections {
-    target: shell.appLibrary
-    function onAppsChanged() {
-      for (var id in shell._pluginAppLibraryApis)
-        shell._pluginAppLibraryApis[id].appsChanged()
-    }
-  }
-
-  // Writes inline settings to a bar layout entry or top-level plugin entry in
-  // shell.json. moduleName is the entry id; settings is the merged plugin
-  // state. Returns true if anything actually changed. Compute the proposed
-  // new shellConfig in a local clone, and only persist if anything actually
-  // changed so reactive bindings do not dirty shell.json unnecessarily.
-  function updateEntryInline(moduleName, settings) {
-    var stripped = Util.canonicalWidgetId(moduleName)
-    var copy = JSON.parse(JSON.stringify(shellConfig || builtinShellConfig))
-    if (!Util.isPlainObject(copy.bar)) copy.bar = { layout: { left: [], center: [], right: [] } }
-    if (!Util.isPlainObject(copy.bar.layout)) copy.bar.layout = { left: [], center: [], right: [] }
-    if (!Array.isArray(copy.plugins)) copy.plugins = []
-
-    var sections = ["left", "center", "right"]
-    var foundInLayout = false
-    var dirty = false
-    for (var s = 0; s < sections.length; s++) {
-      var arr = copy.bar.layout[sections[s]] || []
-      for (var i = 0; i < arr.length; i++) {
-        if (arr[i] && Util.canonicalWidgetId(arr[i].id) === stripped) {
-          var next = { id: stripped }
-          for (var k in settings) if (k !== "id") next[k] = settings[k]
-          if (JSON.stringify(arr[i]) !== JSON.stringify(next)) {
-            arr[i] = next
-            dirty = true
-          }
-          foundInLayout = true
+        if (!reloadReleaseArmed) {
+            reloadReleaseArmed = true;
+            reloadHold.restart();
         }
-      }
-    }
-    if (!foundInLayout) {
-      for (var j = 0; j < copy.plugins.length; j++) {
-        if (copy.plugins[j] && copy.plugins[j].id === stripped) {
-          var pnext = { id: stripped }
-          for (var pk in settings) if (pk !== "id") pnext[pk] = settings[pk]
-          if (JSON.stringify(copy.plugins[j]) !== JSON.stringify(pnext)) {
-            copy.plugins[j] = pnext
-            dirty = true
-          }
-        }
-      }
-    }
-    if (!dirty) return false
-    persistShellConfig(copy)
-    return true
-  }
-
-  // ---------------------------------------------------------- on-demand panels
-
-  // openPanelIds is a plain object treated as a set. A plugin id maps to
-  // `true` while the panel is summoned; deleting the key (well, building a new
-  // object without it) hides it. Reassigning the whole object is required for
-  // QML to notice the change.
-  property var openPanelIds: ({})
-
-  // Pending payloads to deliver to a plugin's open() once its loader resolves.
-  // Keyed by plugin id; the value is an array so two summon() calls before
-  // the Loader resolves both reach the plugin in arrival order rather than
-  // the second clobbering the first.
-  property var pendingPayloads: ({})
-
-  // Bar-widget panels (audio, bluetooth, network, power, monitor, etc.)
-  // are mounted inside the bar, not via the panel loader below. Route
-  // summon/hide/toggle to the live bar instance so panel hotkeys survive
-  // plugin/bar reloads: the bar re-creates the widget, while a fixed IPC
-  // target only ever routes to one of the per-monitor instances.
-  function isBarWidgetPanelPlugin(pluginId) {
-    var plugins = shell.pluginRegistry.installedPlugins
-    var m = plugins[String(pluginId || "")]
-    if (!m || !Array.isArray(m.kinds)) return false
-    if (m.kinds.indexOf("bar-widget") === -1) return false
-    // Plugins that are also panel/overlay/menu kinds are owned by the
-    // panel loader (e.g. kestrel.menu); let that path handle them.
-    var loaderKinds = ["panel", "overlay", "menu"]
-    for (var i = 0; i < loaderKinds.length; i++) {
-      if (m.kinds.indexOf(loaderKinds[i]) !== -1) return false
-    }
-    return true
-  }
-
-  function summon(pluginId, payloadJson) {
-    var id = shell.pluginRegistry.resolveEnabledId(pluginId)
-    if (!id) return false
-    var plugins = shell.pluginRegistry.installedPlugins
-    if (!plugins[id]) {
-      console.warn("summon: unknown plugin", id)
-      return false
-    }
-    // A disabled plugin has no Loader, so setting openPanelIds would only
-    // produce an invisible "open" state that toggle() then has to unwind.
-    // Tell the caller plainly instead of silently no-op'ing.
-    if (!shell.pluginRegistry.isEnabled(id)) {
-      console.warn("summon: plugin not enabled, not summoning:", id)
-      return false
-    }
-    // Bar widgets take no payload; payloadJson is dropped on this path.
-    if (shell.isBarWidgetPanelPlugin(id)) {
-      var summoned = shell.bar && typeof shell.bar.summonBarWidget === "function"
-        && shell.bar.summonBarWidget(id)
-      if (!summoned) console.warn("summon: no live bar widget for:", id)
-      return summoned === true
-    }
-    var next = ({})
-    for (var k in openPanelIds) next[k] = openPanelIds[k]
-    next[id] = true
-    openPanelIds = next
-
-    // Stash payload so the Loader.onLoaded handler can hand it to open().
-    var pending = ({})
-    for (var p in pendingPayloads) pending[p] = pendingPayloads[p].slice()
-    var queue = pending[id] || []
-    queue.push(payloadJson || "")
-    pending[id] = queue
-    pendingPayloads = pending
-
-    // If the plugin is keepLoaded and already mounted, deliver immediately.
-    deliverIfLoaded(id)
-    return true
-  }
-
-  function hide(pluginId) {
-    var id = shell.pluginRegistry.resolveEnabledId(pluginId)
-    if (!id) return false
-    if (shell.isBarWidgetPanelPlugin(id)) {
-      var hidden = shell.bar && typeof shell.bar.hideBarWidget === "function"
-        && shell.bar.hideBarWidget(id)
-      if (!hidden) console.warn("hide: no live bar widget for:", id)
-      return hidden === true
-    }
-    invokeIfLoaded(id, "close", null)
-    if (!openPanelIds[id]) return true
-    var next = ({})
-    for (var k in openPanelIds) if (k !== id) next[k] = openPanelIds[k]
-    openPanelIds = next
-    return true
-  }
-
-  function isPluginOpen(pluginId) {
-    var id = shell.pluginRegistry.resolveEnabledId(pluginId)
-    if (shell.isBarWidgetPanelPlugin(id)) {
-      return shell.bar && typeof shell.bar.isBarWidgetOpen === "function"
-        ? shell.bar.isBarWidgetOpen(id)
-        : false
-    }
-    var loader = panelLoaders[id]
-    if (loader && loader.item && loader.item.opened !== undefined)
-      return loader.item.opened === true
-    return openPanelIds[id] === true
-  }
-
-  function toggle(pluginId, payloadJson) {
-    var id = shell.pluginRegistry.resolveEnabledId(pluginId)
-    return isPluginOpen(id) ? hide(id) : summon(id, payloadJson)
-  }
-
-  // Map of pluginId -> Loader, populated by the Instantiator delegate below.
-  property var panelLoaders: ({})
-
-  function registerPanelLoader(pluginId, loader) {
-    var next = ({})
-    for (var k in panelLoaders) next[k] = panelLoaders[k]
-    next[pluginId] = loader
-    panelLoaders = next
-    deliverIfLoaded(pluginId)
-  }
-
-  function unregisterPanelLoader(pluginId) {
-    if (!panelLoaders[pluginId]) return
-    var next = ({})
-    for (var k in panelLoaders) if (k !== pluginId) next[k] = panelLoaders[k]
-    panelLoaders = next
-  }
-
-  function unloadPanels() {
-    for (var id in panelLoaders) hide(id)
-    panelEntryModel.clear()
-    panelLoaders = ({})
-    pendingPayloads = ({})
-    openPanelIds = ({})
-  }
-
-  function deliverIfLoaded(pluginId) {
-    var loader = panelLoaders[pluginId]
-    if (!loader || !loader.item) return
-    var queue = pendingPayloads[pluginId]
-    if (!Array.isArray(queue) || queue.length === 0) return
-    if (typeof loader.item.open === "function") {
-      for (var i = 0; i < queue.length; i++) {
-        try { loader.item.open(queue[i]) } catch (e) {
-          console.warn("plugin " + pluginId + " open() threw:", e)
-        }
-      }
-    }
-    var next = ({})
-    for (var k in pendingPayloads) if (k !== pluginId) next[k] = pendingPayloads[k].slice()
-    pendingPayloads = next
-  }
-
-  function invokeIfLoaded(pluginId, method, arg) {
-    var loader = panelLoaders[pluginId]
-    if (!loader || !loader.item) return
-    if (typeof loader.item[method] !== "function") return
-    try { loader.item[method](arg) } catch (e) {
-      console.warn("plugin " + pluginId + " " + method + "() threw:", e)
-    }
-  }
-
-  function callIfLoaded(pluginId, method, arg) {
-    var id = shell.pluginRegistry.resolveEnabledId(pluginId)
-    var loader = panelLoaders[id]
-    if (!loader || !loader.item) return "unknown"
-    if (typeof loader.item[method] !== "function") return "unknown"
-    try {
-      var result = loader.item[method](arg)
-      return result === undefined || result === null ? "ok" : String(result)
-    } catch (e) {
-      console.warn("plugin " + id + " " + method + "() threw:", e)
-      return "error"
-    }
-  }
-
-  // One Loader per discoverable panel/overlay/menu plugin. Active when the
-  // host marks it open. The Loader holds onto the instance while active so the
-  // plugin's FloatingWindow + state survive between summons within a session.
-  //
-  // The entries live in a ListModel synced in place. Handing the Instantiator
-  // a fresh array instead rebuilt every panel on every plugin change, four
-  // times over during startup: each rebuild started a new asynchronous load of
-  // every keepLoaded panel while the last was in flight, so two OSDs could run
-  // at once, each registering its IPC handler. A full plugin reload clears
-  // the model in unloadPanels, so panels still rebuild from fresh code then.
-  ListModel { id: panelEntryModel }
-
-  function syncPanelEntries() {
-    var wanted = ({})
-    var order = []
-    var entries = computePanelEntries()
-    for (var i = 0; i < entries.length; i++) {
-      var entry = entries[i]
-      entry.sourceUrl = String(shell.pluginRegistry.entryPointUrl(entry.manifest, entry.kind) || "")
-      wanted[entry.id] = entry
-      order.push(entry.id)
     }
 
-    // Keep an entry whose plugin still loads the same way; drop the rest.
-    for (var j = panelEntryModel.count - 1; j >= 0; j--) {
-      var row = panelEntryModel.get(j)
-      var next = wanted[row.pluginId]
-      if (next && next.kind === row.entryKind && next.keepLoaded === row.keepLoaded && next.sourceUrl === row.sourceUrl) {
-        delete wanted[row.pluginId]
-      } else {
-        panelEntryModel.remove(j)
-      }
-    }
-
-    for (var k = 0; k < order.length; k++) {
-      var added = wanted[order[k]]
-      if (!added) continue
-      panelEntryModel.append({ pluginId: added.id, entryKind: added.kind, keepLoaded: added.keepLoaded, sourceUrl: added.sourceUrl })
-    }
-  }
-
-  function computePanelEntries() {
-    var out = []
-    var plugins = shell.pluginRegistry.installedPlugins
-    var panelKinds = ["panel", "overlay", "menu"]
-    for (var id in plugins) {
-      var m = plugins[id]
-      if (!m || !Array.isArray(m.kinds)) continue
-      var matched = false
-      for (var i = 0; i < panelKinds.length; i++)
-        if (m.kinds.indexOf(panelKinds[i]) !== -1) { matched = true; break }
-      if (!matched) continue
-      if (!shell.pluginRegistry.isEnabled(id)) continue
-      var kind = m.kinds.indexOf("panel") !== -1 ? "panel"
-        : (m.kinds.indexOf("overlay") !== -1 ? "overlay" : "menu")
-      out.push({ id: id, manifest: m, kind: kind, keepLoaded: m.keepLoaded === true })
-    }
-    return out
-  }
-
-  Connections {
-    target: shell.pluginRegistry
-    function onPluginsChanged() { if (!shell.pluginReloading) shell.syncPanelEntries() }
-  }
-
-  Instantiator {
-    model: panelEntryModel
-    active: true
-
-    delegate: QtObject {
-      id: panelEntry
-      required property string pluginId
-      required property string entryKind
-      required property bool keepLoaded
-      required property string sourceUrl
-      // The manifest can be replaced on a rescan without the entry changing.
-      readonly property var manifest: shell.pluginRegistry.installedPlugins[pluginId]
-
-      property Loader panelLoader: Loader {
-        source: panelEntry.sourceUrl
-        active: panelEntry.sourceUrl !== "" && (panelEntry.keepLoaded || shell.openPanelIds[panelEntry.pluginId] === true)
-        asynchronous: true
+    FileView {
+        id: reloadState
+        path: root.reloadStatePath
+        blockLoading: true
+        printErrors: false
+        // One read at load, never again: a shell that was already up when a
+        // reload armed the cover must not steal the next instance's finish by
+        // re-reading the token mid-teardown.
+        watchChanges: false
         onLoaded: {
-          if (!item) return
-          if ("kestrelPath" in item) item.kestrelPath = shell.kestrelPath
-          if ("shell" in item) item.shell = shell.pluginShellFor(panelEntry.manifest)
-          if ("manifest" in item) item.manifest = shell.publicPluginManifest(panelEntry.manifest)
-          if ("barWidgetRegistry" in item) item.barWidgetRegistry = shell.pluginBarWidgetRegistryFor(panelEntry.manifest)
-          if ("pluginRegistry" in item) item.pluginRegistry = shell.pluginRegistryFor(panelEntry.manifest)
-          // Plugins that pair a panel UI with a service entry read shared
-          // state off `service`. Hand them the matching singleton if one was
-          // loaded.
-          if ("service" in item) item.service = shell.serviceFor(panelEntry.pluginId)
-          shell.registerPanelLoader(panelEntry.pluginId, this)
+            try {
+                const token = JSON.parse(text() || "{}").token;
+                root.reloadToken = typeof token === "string" && /^[0-9a-f]{32}$/.test(token) ? token : "";
+            } catch (error) {
+                root.reloadToken = "";
+            }
+            root.finishReloadCover();
         }
-        onStatusChanged: {
-          if (status === Loader.Error) {
-            // Loader.errorString() reflects the source-load failure even when
-            // sourceComponent is null. Surface both so the user sees something
-            // actionable instead of a panel that silently refuses to open.
-            var detail = errorString || ""
-            if (!detail && sourceComponent) detail = sourceComponent.errorString()
-            console.warn("panel plugin " + panelEntry.pluginId + " failed to load:", detail)
-            shell.hide(panelEntry.pluginId)
-          }
+    }
+    Timer {
+        id: reloadHold
+        interval: 1500
+        onTriggered: {
+            if (!root.reloadToken || root.reloadFinishSent)
+                return;
+            root.reloadFinishSent = true;
+            reloadFinish.command = [root.reloadCoverBin, "finish", root.reloadToken];
+            reloadFinish.running = true;
         }
-        Component.onDestruction: shell.unregisterPanelLoader(panelEntry.pluginId)
-      }
-    }
-  }
-
-  // ---------------------------------------------------------- plugin loader
-
-  // Mirror plugin registry state into BarWidgetRegistry whenever it changes.
-  // Each enabled plugin with kind "bar-widget" gets a Component created from
-  // its manifest entry point and registered under its manifest id. Built-in
-  // widgets use the same first-party manifest contract as third-party widgets.
-  Connections {
-    target: shell.pluginRegistry
-    function onPluginsChanged() { if (!shell.pluginReloading) shell.syncPluginWidgets() }
-  }
-
-  property var pluginWidgetComponents: ({})
-
-  function syncPluginWidgets() {
-    var plugins = shell.pluginRegistry.installedPlugins
-    var seen = ({})
-
-    for (var pluginId in plugins) {
-      var manifest = plugins[pluginId]
-      if (!manifest || !manifest.kinds || manifest.kinds.indexOf("bar-widget") === -1) continue
-      if (!shell.pluginRegistry.isEnabled(pluginId)) continue
-
-      var registryKey = String(manifest.id)
-      seen[registryKey] = true
-
-      // Already loaded with matching source, leave it alone.
-      var existing = pluginWidgetComponents[registryKey]
-      var url = shell.pluginRegistry.entryPointUrl(manifest, "barWidget")
-      if (!url) {
-        console.warn("Plugin " + manifest.id + " has no barWidget entry point")
-        continue
-      }
-      var meta = manifest.barWidget || {}
-      meta = {
-        displayName: meta.displayName || manifest.name,
-        description: meta.description || manifest.description,
-        category: meta.category || "Plugin",
-        allowMultiple: meta.allowMultiple === true,
-        defaults: meta.defaults || {},
-        settingsForm: meta.settingsForm || "",
-        schema: meta.schema || [],
-        pluginId: manifest.id,
-        sourceDir: manifest.__sourceDir || "",
-        source: "plugin",
-        firstParty: !!manifest.__isFirstParty
-      }
-
-      // A load already in flight for this URL registers itself when it
-      // finishes. Starting a second one produces a second Component for the
-      // same widget, and swapping a slot's component rebuilds its item, 
-      // briefly running two of the widget, each registering its IPC handler.
-      if (existing && existing.url === url && !existing.component) continue
-
-      // If the component URL is unchanged, just refresh the metadata in
-      // place. We can't skip this even when the URL matches: manifests can
-      // change schema, defaults, or sourceDir between rescans, and the
-      // settings panel reads metadata from the registry.
-      if (existing && existing.url === url && shell.barWidgetRegistry.has(registryKey)) {
-        shell.barWidgetRegistry.register(registryKey, existing.component, meta)
-        continue
-      }
-
-      loadPluginWidget(registryKey, url, meta)
     }
 
-    // Drop registrations for plugins that are no longer present or enabled.
-    var allIds = shell.barWidgetRegistry.availableIds()
-    for (var i = 0; i < allIds.length; i++) {
-      var id = allIds[i]
-      if (!pluginWidgetComponents[id]) continue
-      if (!seen[id]) {
-        shell.barWidgetRegistry.unregister(id)
-        var next = ({})
-        for (var k in pluginWidgetComponents) if (k !== id) next[k] = pluginWidgetComponents[k]
-        pluginWidgetComponents = next
-      }
+    Process {
+        id: reloadFinish
     }
-  }
 
-  function unloadPluginWidgets() {
-    for (var id in pluginWidgetComponents) shell.barWidgetRegistry.unregister(id)
-    pluginWidgetComponents = ({})
-  }
-
-  function reloadPlugins() {
-    if (shell.pluginReloading || shell.pluginRegistry.scanning) {
-      shell.pluginReloadPending = true
-      return
-    }
-    shell.pluginReloading = true
-    shell.unloadPanels()
-    shell.unloadPluginServices()
-    shell.unloadPluginWidgets()
-    Qt.callLater(shell.finishPluginReload)
-  }
-
-  function finishPluginReload() {
-    if (!shell.pluginReloading) return
-    if (shell.pluginRegistry.scanning) {
-      shell.pluginReloadPending = true
-      return
-    }
-    if (typeof Qt.clearComponentCache === "function") Qt.clearComponentCache()
-    shell.pluginRegistry.rescan()
-  }
-
-  Connections {
-    target: shell.pluginRegistry
-    function onLocalPluginChanged(pluginId) {
-      console.log("Local plugin changed, reloading:", pluginId)
-      localPluginReloadTimer.restart()
-    }
-    function onScanFinished() {
-      if (shell.pluginReloadPending) {
-        shell.pluginReloadPending = false
-        shell.pluginReloading = false
-        Qt.callLater(shell.reloadPlugins)
-        return
-      }
-      shell.pluginReloading = false
-      shell._syncServices()
-      shell.syncPanelEntries()
-      shell.syncPluginWidgets()
-    }
-  }
-
-  function setPluginWidgetComponent(registryKey, entry) {
-    var next = ({})
-    for (var k in pluginWidgetComponents) if (k !== registryKey) next[k] = pluginWidgetComponents[k]
-    if (entry) next[registryKey] = entry
-    pluginWidgetComponents = next
-  }
-
-  function loadPluginWidget(registryKey, url, meta) {
-    // Claim the key before the component exists. Qt.createComponent is
-    // asynchronous and syncPluginWidgets runs several times while the shell
-    // starts, so without a marker the later passes cannot tell a load in
-    // flight from one that never happened.
-    setPluginWidgetComponent(registryKey, { url: url, component: null })
-
-    var comp = Qt.createComponent(url, Component.Asynchronous)
-    function finalize() {
-      if (comp.status === Component.Ready) {
-        shell.barWidgetRegistry.register(registryKey, comp, meta)
-        shell.setPluginWidgetComponent(registryKey, { url: url, component: comp })
-      } else if (comp.status === Component.Error) {
-        console.warn("Plugin widget " + registryKey + " failed: " + comp.errorString())
-        // Drop the claim so a later rescan can retry.
-        shell.setPluginWidgetComponent(registryKey, null)
-        shell.pluginRegistry.pluginLoadFailed(registryKey, comp.errorString())
-      }
-    }
-    if (comp.status === Component.Loading) {
-      comp.statusChanged.connect(finalize)
-    } else {
-      finalize()
-    }
-  }
-
-  // ------------------------------------------------------ global shortcuts
-  //
-  // Bindings that open a menu route or panel, or step the volume, dispatch
-  // these through Hyprland, so a keypress reaches the shell without spawning
-  // an IPC client or script. The list is shared with default/hypr/helpers.lua, which binds a
-  // route or panel missing from it through the command instead.
-
-  function parseShortcuts(raw) {
-    var entries = []
-    var lines = String(raw || "").split("\n")
-    for (var i = 0; i < lines.length; i++) {
-      var match = /^([A-Za-z]+)\s+(\S+)\s*$/.exec(lines[i])
-      if (match && ["menu", "panel", "audio", "brightness", "ipc", "launcher"].indexOf(match[1]) !== -1)
-        entries.push({ kind: match[1], target: match[2], name: match[1] + "." + match[2] })
-    }
-    return entries
-  }
-
-  // The IPC targets an ipc shortcut may name, and the service that owns each.
-  readonly property var ipcShortcutServices: ({ media: "kestrel.media", notifications: "kestrel.notifications" })
-
-  function runShortcut(entry) {
-    if (entry.kind === "launcher") {
-      shell.toggle("kestrel.launcher", "{}")
-    } else if (entry.kind === "menu") {
-      shell.toggle("kestrel.menu", JSON.stringify({ menu: entry.target }))
-    } else if (entry.kind === "ipc") {
-      // "media.next" runs the media service's own IPC handler for next.
-      var dot = entry.target.indexOf(".")
-      var target = entry.target.slice(0, dot)
-      var method = entry.target.slice(dot + 1)
-      var service = shell.serviceFor(shell.ipcShortcutServices[target] || "")
-      if (!service || !service.runShortcut(method))
-        Util.execArgv(["kestrel-shell", target, method])
-    } else if (entry.kind === "brightness") {
-      if (!shell.brightnessKeys.handle(entry.target))
-        Util.execArgv(["kestrel-brightness-display", entry.target === "raise" ? "+5%" : "5%-"])
-    } else if (entry.kind === "audio") {
-      var media = shell.serviceFor("kestrel.media")
-      if (!media || !media.handleVolumeKey(entry.target))
-        Util.execArgv(["kestrel-audio-output-volume", entry.target])
-    } else {
-      shell.toggle(entry.target, "{}")
-    }
-  }
-
-  FileView {
-    id: shortcutsFile
-    path: shell.kestrelPath + "/default/kestrel/shortcuts"
-    watchChanges: true
-    onFileChanged: reload()
-  }
-
-  Variants {
-    model: shell.parseShortcuts(shortcutsFile.text())
-
-    GlobalShortcut {
-      required property var modelData
-
-      appid: "kestrel"
-      name: modelData.name
-      description: modelData.kind === "audio" || modelData.kind === "brightness" ? (modelData.kind === "audio" ? "Volume " : "Brightness ") + modelData.target : (modelData.kind === "ipc" ? "Run " + modelData.target : "Toggle the " + modelData.target + " " + modelData.kind)
-      onPressed: shell.runShortcut(modelData)
-    }
-  }
-
-  // ------------------------------------------------------------ IPC socket
-  //
-  // kestrel-shell reaches the shell here first: a qs ipc client costs ~45ms
-  // to start per call, socat ~5ms. A request is target, method and arguments
-  // separated by unit separators and ended by a record separator. The reply is
-  // "OK" and the output, or "SKIP" when nothing ran (no such target or
-  // function, or the wrong number of arguments), which kestrel-shell hands to
-  // qs ipc for its exact answer. The socket sits in XDG_RUNTIME_DIR, private
-  // to the user like qs ipc's own. Like qs ipc, it belongs to one shell: the
-  // one running this config on this display. kestrel-shell derives the same
-  // name from the same two values.
-  readonly property string ipcSocketPath: Quickshell.env("XDG_RUNTIME_DIR") + "/kestrel-shell-"
-    + Qt.md5(shell.kestrelPath + "/shell\n" + Quickshell.env("WAYLAND_DISPLAY")).slice(0, 16) + ".sock"
-
-  SocketServer {
-    active: shell.kestrelPath !== ""
-    path: shell.ipcSocketPath
-
-    handler: Socket {
-      id: connection
-
-      parser: SplitParser {
-        splitMarker: "\u001e"
-        onRead: function(data) {
-          var fields = String(data).split("\u001f")
-          var result = fields.length >= 2 ? IpcRegistry.call(fields[0], fields[1], fields.slice(2)) : { ran: false }
-          connection.write(result.ran ? "OK\u001f" + result.output + "\u001e" : "SKIP\u001e")
-          connection.flush()
-          connection.connected = false
+    // Power Saver strips compositor blur and shadow too (the heaviest present-time
+    // GPU cost), reusing the decoration.lua path lowPowerMode already takes. Perf
+    // folds the active power profile into its switches; mirror the profile-driven
+    // "saver" flag to a cache the compositor reads, and reload it when it flips
+    // so it re-reads the value live. Seeded once at load with no reload
+    // (login already parsed the right value); only a later profile change reloads.
+    FileView {
+        id: hyprPerf
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ryoku/hypr-perf.json"
+        printErrors: false
+        property bool armed: false
+        onSaved: if (hyprPerf.armed) Wm.reloadConfig("")
+        JsonAdapter { id: hyprPerfA; property bool saver: false }
+        Component.onCompleted: {
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
         }
-      }
     }
-  }
-
-  // --------------------------------------------------- image selector IPC
-
-  function imagePickerItem() {
-    var loader = panelLoaders["kestrel.image-picker"]
-    return loader && loader.item ? loader.item : null
-  }
-
-  ShellIpc {
-    target: "image-selector"
-
-    function open(imageDirs: string,
-                  imageRowsB64: string,
-                  selectedImage: string,
-                  selectionFile: string,
-                  doneFile: string,
-                  showLabels: string,
-                  filterable: string): string {
-      var payload = JSON.stringify({
-        imageDirs: imageDirs,
-        imageRows: Util.decodeBase64(imageRowsB64),
-        selectedImage: selectedImage,
-        selectionFile: selectionFile,
-        doneFile: doneFile,
-        showLabels: showLabels,
-        filterable: filterable
-      })
-      return shell.summon("kestrel.image-picker", payload) ? "ok" : "unknown"
+    Connections {
+        target: Perf
+        function onSaverChanged() {
+            hyprPerf.armed = true;
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
+        }
     }
 
-    function preload(imageRowsB64: string,
-                     selectedImage: string,
-                     showLabels: string,
-                     filterable: string): string {
-      var picker = shell.imagePickerItem()
-      if (picker && typeof picker.preloadRows === "function") {
-        picker.preloadRows(Util.decodeBase64(imageRowsB64), selectedImage,
-                           showLabels, filterable)
-      }
-      return "ok"
+    // One per-monitor surface stack. Each screen gets a Scope carrying its
+    // ShellState slice (st); every resident surface binds its screen and its
+    // visibility to that slice, so flipping a flag on the active monitor reveals
+    // or hides this monitor's copy. The order here reads top-to-bottom only; the
+    // Wayland layer each surface maps on decides the real stacking.
+    Variants {
+        model: ShellState.screens
+
+        Scope {
+            id: perScreen
+            required property var modelData
+            readonly property var st: ShellState.forScreen(modelData)
+            readonly property bool reloadReady: wallpaper.reloadReady && desktop.reloadReady
+            onReloadReadyChanged: root.setReloadScreenReady(modelData.name, reloadReady)
+            Component.onCompleted: root.setReloadScreenReady(modelData.name, reloadReady)
+
+            // Always-on backdrop and desktop widget layer.
+            Wallpaper {
+                id: wallpaper
+                screen: perScreen.modelData
+            }
+            Desktop {
+                id: desktop
+                screen: perScreen.modelData
+                onSurfaceReadyChanged: if (surfaceReady) root.markDesktopLayerReady(perScreen.modelData.name)
+                active: true
+                widgetsEnabled: Tokens.widgetsEnabledFor(perScreen.modelData.name)
+                    && !root.gokkoRunning
+                gokkoActive: root.gokkoRunning
+                wallpaperUrl: wallpaper.wallpaperUrl
+                wallpaperPath: wallpaper.wallpaperPath
+                wallpaperFit: wallpaper.fit
+                wallpaperTransition: wallpaper.transition
+                videoUrl: wallpaper.videoUrl
+                wallpaperLive: wallpaper.live
+                scenePointer: wallpaper.scenePointer
+                videoMuted: wallpaper.videoMuted
+                videoVolume: wallpaper.videoVolume
+                videoPaused: wallpaper.videoPaused
+            }
+
+            // A blurred copy of the wallpaper for the compositor's overview
+            // backdrop, mapped below the desktop so it shows only in the
+            // overview. Built only where the capability and the user's setting
+            // both ask for it; a box with the backdrop off never pays for it.
+            LazyLoader {
+                id: backdropLoader
+                activeAsync: Wm.caps.overviewBackdrop === true && WallCfg.OverviewBackdropConfig.enabled
+                OverviewBackdrop {
+                    screen: perScreen.modelData
+                    available: Wm.caps.overviewBackdrop === true
+                    overviewOpen: Wm.overviewOpen
+                    wallpaperUrl: wallpaper.wallpaperUrl
+                }
+            }
+
+            // Build the separate window only for the explicit Above windows
+            // mode. Inferring it from the inline hosts races their bindings when
+            // the ordinary toggle enables the visualizer.
+            LazyLoader {
+                id: vizLoader
+                activeAsync: VizCfg.Config.enabled && Perf.visualizerResident
+                    && perScreen.st && perScreen.st.visualizerOverlay
+                    && !desktop.hostsVisualizer
+                Visualizer {
+                    id: perScreenViz
+                    screen: perScreen.modelData
+                    mode: "overlay"
+                    suppressed: !wallpaper.reloadReady
+                }
+            }
+
+            // The frame bar (Phase 2): reads its own reveal from this slice.
+            Frame {
+                modelData: perScreen.modelData
+                // park the record island flush beside this monitor's dock band
+                dockLaneEdge: dockLoader.item ? dockLoader.item.edge : ""
+                dockLaneSize: dockLoader.item ? dockLoader.item.bandSize : 0
+                dockLaneCenter: dockLoader.item ? dockLoader.item.bandCenter : 0
+            }
+
+            // nothing of the Game Bar exists while it is closed with no pins
+            LazyLoader {
+                id: gameBarLoader
+                // the bar reports its own hold through this flag, reading item.holding here looped
+                property bool held: false
+                activeAsync: (Config.gamebar.enabled
+                        && (GameBarStore.open || GameBarStore.asList(GameBarStore.pinned).length > 0))
+                    || held
+                GameBar {
+                    modelData: perScreen.modelData
+                    onHoldingChanged: gameBarLoader.held = holding
+                    Component.onCompleted: gameBarLoader.held = holding
+                }
+            }
+
+            LazyLoader {
+                id: controlsLoader
+                property bool open: SidebarState.isOpen(perScreen.modelData)
+                property bool showNow: false
+                activeAsync: open || controlsHold.running
+                onItemChanged: if (item) Qt.callLater(() => controlsLoader.showNow = controlsLoader.open)
+                onOpenChanged: {
+                    showNow = open && item !== null;
+                    if (!open && active) controlsHold.restart();
+                }
+                Sidebar {
+                    screen: perScreen.modelData
+                    active: controlsLoader.showNow
+                }
+            }
+            // The controls tree is expensive to construct; keep it across ordinary
+            // toggles while its active-gated probes and surfaces remain stopped.
+            Timer { id: controlsHold; interval: 15000 }
+
+
+            LazyLoader {
+                id: askLoader
+                property bool open: perScreen.st ? perScreen.st.askOpen : false
+                property bool showNow: false
+                activeAsync: open || askHold.running
+                onItemChanged: if (item) Qt.callLater(() => askLoader.showNow = askLoader.open)
+                onOpenChanged: {
+                    showNow = open && item !== null;
+                    if (!open && active) askHold.restart();
+                }
+                AskBar {
+                    screen: perScreen.modelData
+                    active: askLoader.showNow
+                    mode: perScreen.st ? perScreen.st.askMode : "ask"
+                    tool: perScreen.st ? perScreen.st.askTool : ""
+                    onRequestClose: if (perScreen.st) perScreen.st.askOpen = false
+                    onModeChangeRequested: mode => ShellState.setAskMode(perScreen.modelData, mode)
+                }
+            }
+            Timer { id: askHold; interval: 15000 }
+
+            LazyLoader {
+                id: askBubbleLoader
+                activeAsync: Config.askBubble.enabled
+                    && Config.askBubble.screen === perScreen.modelData.name
+                AskBubble {
+                    screen: perScreen.modelData
+                    enabled: true
+                    suppressed: perScreen.st ? perScreen.st.askOpen : false
+                }
+            }
+
+            // One cheap host per monitor loads only the selected dock design.
+            // The surface itself remains independent of the active bar style.
+            // The dock stays through the Stage Editor session (like the bar):
+            // the dock catalogue edits it live inside the editor's card, and it
+            // publishes the edge it occupies (GlobalStates.dockInsets).
+            UniversalDockHost {
+                id: dockLoader
+                screen: perScreen.modelData
+                surfaceVisible: !root.gokkoRunning && desktop.surfaceReady
+            }
+
+            // The dock's right-click context menu: a full-screen overlay on the
+            // monitor that owns the open menu (the thin dock strip cannot host it).
+            // The Ryoku design and docks installed from RyoStore share it.
+            LazyLoader {
+                id: dockMenuLoader
+                property bool open: !root.gokkoRunning
+                    && (Dock.design === "ryoku" || Dock.storeDesign)
+                    && Dock.menuOpen && Dock.menuScreen === perScreen.modelData.name
+                activeAsync: open || dockMenuHold.running
+                onOpenChanged: if (!open && active) dockMenuHold.restart()
+                DockMenuOverlay {
+                    screen: perScreen.modelData
+                }
+            }
+            Timer { id: dockMenuHold; interval: 2000 }
+
+            // Toggle-driven overlays: built on first open (async, so the key
+            // press never blocks on a component build) and destroyed 15 s after
+            // every close, once the slide-out has long finished.
+            // The inner surface must be BORN closed and opened one tick later:
+            // its reveal is driven by an active-change, and an item created with
+            // the flag already true would never animate (or show) at all.
+            LazyLoader {
+                id: launcherLoader
+                property bool open: perScreen.st ? perScreen.st.launcherOpen : false
+                property bool showNow: false
+                activeAsync: open || launcherHold.running
+                onItemChanged: if (launcherLoader.item) Qt.callLater(function() { launcherLoader.showNow = launcherLoader.open; })
+                onActiveChanged: if (!active) launcherCollect.restart()
+                onOpenChanged: {
+                    if (launcherLoader.open) {
+                        if (launcherLoader.item) launcherLoader.showNow = true;
+                        return;
+                    }
+                    launcherLoader.showNow = false;
+                    if (launcherLoader.active) launcherHold.restart();
+                }
+                Launcher {
+                    screen: perScreen.modelData
+                    active: launcherLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.launcherOpen = false
+                }
+            }
+            Timer { id: launcherHold; interval: 15000 }
+            Timer {
+                id: launcherCollect
+                interval: 1000
+                onTriggered: if (!launcherLoader.active) gc()
+            }
+            LazyLoader {
+                id: overviewLoader
+                property bool open: perScreen.st ? perScreen.st.overviewOpen : false
+                property bool showNow: false
+                activeAsync: open || overviewHold.running
+                onItemChanged: if (overviewLoader.item) Qt.callLater(function() { overviewLoader.showNow = overviewLoader.open; })
+                onOpenChanged: {
+                    if (overviewLoader.open) {
+                        if (overviewLoader.item) overviewLoader.showNow = true;
+                        return;
+                    }
+                    overviewLoader.showNow = false;
+                    if (overviewLoader.active) overviewHold.restart();
+                }
+                OverviewSurface {
+                    screen: perScreen.modelData
+                    active: overviewLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.overviewOpen = false
+                }
+            }
+            Timer { id: overviewHold; interval: 15000 }
+            LazyLoader {
+                id: clipboardLoader
+                property bool open: perScreen.st ? perScreen.st.clipboardOpen : false
+                property bool showNow: false
+                activeAsync: open || clipboardHold.running
+                onItemChanged: if (clipboardLoader.item) Qt.callLater(function() { clipboardLoader.showNow = clipboardLoader.open; })
+                onOpenChanged: {
+                    if (clipboardLoader.open) {
+                        if (clipboardLoader.item) clipboardLoader.showNow = true;
+                        return;
+                    }
+                    clipboardLoader.showNow = false;
+                    if (clipboardLoader.active) clipboardHold.restart();
+                }
+                ClipboardSurface {
+                    screen: perScreen.modelData
+                    active: clipboardLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.clipboardOpen = false
+                }
+            }
+            Timer { id: clipboardHold; interval: 15000 }
+            // Shell-wide per-monitor surfaces. The OSDs and the popup column are
+            // small and event-driven (a keypress or an arriving toast must never
+            // wait on a build), so they join the first wave and stay resident.
+            // The capture overlays are per-flow: built on the flow's first
+            // signal, kept across the flow's pauses, dropped 20 s after it ends.
+            LazyLoader {
+                id: osdVolumeLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "volume"
+                }
+            }
+            LazyLoader {
+                id: osdMicLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "mic"
+                }
+            }
+            LazyLoader {
+                id: osdBrightnessLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "brightness"
+                }
+            }
+            LazyLoader {
+                id: osdKeyboardLoader
+                activeAsync: root.warm >= 1
+                KeyboardOsdWindow {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: notifsLoader
+                activeAsync: root.warm >= 1 || Notifs.popups.length > 0
+                NotificationPopups {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: regionLoader
+                property bool open: Recorder.anyActive
+                activeAsync: open || regionHold.running
+                onOpenChanged: if (!open && active) regionHold.restart()
+                RegionOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: regionHold; interval: 20000 }
+            LazyLoader {
+                id: captureLoader
+                property bool open: Capture.selecting !== ""
+                activeAsync: open || captureHold.running
+                onOpenChanged: if (!open && active) captureHold.restart()
+                CaptureOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: captureHold; interval: 20000 }
+            LazyLoader {
+                id: cameraLoader
+                property bool open: Camera.active
+                activeAsync: open || cameraHold.running
+                onOpenChanged: if (!open && active) cameraHold.restart()
+                CameraOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: cameraHold; interval: 20000 }
+            LazyLoader {
+                id: keypressLoader
+                property bool open: Keypresses.active
+                activeAsync: open || keypressHold.running
+                onOpenChanged: if (!open && active) keypressHold.restart()
+                KeypressOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: keypressHold; interval: 20000 }
+            // The floating recording island: the one recording HUD on every bar
+            // style, a standalone layer-shell surface rather than frame chrome. It
+            // shows on the output being recorded -- the screen holding the region
+            // box, else the focused output, else the first screen -- so a
+            // multi-monitor setup gets one island on the right screen.
+            LazyLoader {
+                id: recordIslandLoader
+                readonly property bool isTarget: {
+                    var s = perScreen.modelData;
+                    var m = /^(\d+)x(\d+)\+(-?\d+)\+(-?\d+)$/.exec(Recorder.regionGeom);
+                    if (m) {
+                        var ox = parseInt(m[3]);
+                        var oy = parseInt(m[4]);
+                        return ox >= s.x && ox < s.x + s.width && oy >= s.y && oy < s.y + s.height;
+                    }
+                    if (Wm.focusedOutput && Wm.focusedOutput.length > 0)
+                        return s.name === Wm.focusedOutput;
+                    return ShellState.screens.length > 0 && ShellState.screens[0].name === s.name;
+                }
+                property bool open: isTarget && (Recorder.anyActive || Recorder.countingDown)
+                activeAsync: open || recordIslandHold.running
+                onOpenChanged: if (!open && active) recordIslandHold.restart()
+                RecordIsland {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: recordIslandHold; interval: 20000 }
+            // Shown only on the monitor whose frame bar raised it; the positive
+            // button runs the power action through the daemon, then clears.
+            LazyLoader {
+                id: confirmLoader
+                property bool open: ShellState.sessionAction !== ""
+                activeAsync: open || confirmHold.running
+                onOpenChanged: if (!open && active) confirmHold.restart()
+                RyokuConfirmationDialog {
+                    modelData: perScreen.modelData
+                    action: ShellState.sessionActionMonitor === perScreen.modelData.name ? ShellState.sessionAction : ""
+                    message: ShellState.sessionMessage
+                    positiveLabel: ShellState.sessionPositive
+                    negativeLabel: I18n.tr("Cancel")
+                    onConfirmed: a => { SessionActions.run(a); ShellState.clearSessionAction(); }
+                    onCancelled: ShellState.clearSessionAction()
+                }
+            }
+            Timer { id: confirmHold; interval: 5000 }
+        }
     }
 
-    function cancel(doneFile: string): string {
-      var picker = shell.imagePickerItem()
-      if (picker && typeof picker.closeSelector === "function") {
-        picker.closeSelector(doneFile || "")
-      } else {
-        shell.hide("kestrel.image-picker")
-      }
-      return "ok"
+    // Keep the edit chrome alive through its closing transition, then release
+    // its component graph until another edit session starts.
+    LazyLoader {
+        id: stageEditorLoader
+        activeAsync: StageCfg.StageSession.widgets
+            || Stage.GlobalStates.editMode
+            || Stage.GlobalStates.editProgress > 0
+        onItemChanged: {
+            if (!item || !StageCfg.StageSession.widgets)
+                return;
+            Stage.GlobalStates.openEditMode(StageCfg.StageSession.monitor);
+            item.showSection();
+        }
+        // StageEditorHost is not ported yet.
     }
 
-    function ping(): string {
-      return "ok"
+    // The ii host publishes actions and mounts its auxiliary surfaces only for
+    // the selected, enabled design. Other docks do not instantiate the port.
+    LazyLoader {
+        active: !root.gokkoRunning && root.docksMayMount
+            && Dock.design === "ii" && Dock.cfg("enabled", false)
+        LazyLoader {
+            activeAsync: true
+            IiDockHost {}
+        }
     }
 
-  }
 
-  // ---------------------------------------------------------- shell IPC
-
-  ShellIpc {
-    target: "shell"
-
-    function prepareThemeIntro(fromPath: string, token: string, colorsB64: string, shellB64: string): void {
-      shell.bootIntro.prepareTheme(fromPath, token, colorsB64, shellB64)
+    // The single surface-toggle mapping. Every shell surface id resolves to one
+    // transition here: a per-monitor ShellState flip, a global config toggle, or
+    // a request onto the shared surface bus. A CustomShortcut press and the
+    // `ryoku-shell <id>` fallback both end at the same transition, whether the
+    // surface is hosted by the frame or by a sidebar.
+    function toggleSurface(id) {
+        const st = ShellState.forActive();
+        switch (id) {
+        case "barToggle":
+            if (st)
+                st.barRevealed = !st.barRevealed;
+            break;
+        case "launcher":
+            if (st)
+                st.launcherOpen = !st.launcherOpen;
+            break;
+        case "overview":
+            if (Wm.caps.nativeOverview)
+                Wm.toggleOverview();
+            else if (Wm.caps.windowGeometry && st)
+                st.overviewOpen = !st.overviewOpen;
+            break;
+        case "visualizer":
+            VizCfg.Config.setEnabled(!VizCfg.Config.enabled);
+            break;
+        case "visualizer-overlay":
+            if (st)
+                st.visualizerOverlay = !st.visualizerOverlay;
+            break;
+        case "visualizer-place":
+            root.placeVisualizer(!StageCfg.StageSession.active);
+            break;
+        case "quicksettings":
+            ShellState.requestSurfaceActive("sidebar-left", undefined);
+            break;
+        case "wallpaper-menu":
+            ShellState.requestSurfaceActive("wallpaper", undefined);
+            break;
+        case "clipboard":
+            if (st)
+                st.clipboardOpen = !st.clipboardOpen;
+            break;
+        case "gamebar":
+            if (Config.gamebar.enabled)
+                GameBarStore.toggleBar(Wm.focusedOutput);
+            break;
+        case "settings":
+            Spawn.run(["ryoku-shell", "hub", "open"]);
+            break;
+        case "cheatsheet":
+            Quickshell.execDetached(["sh", "-c", "pkill -x -f 'qs -c keys' 2>/dev/null || flock -n -o /tmp/ryoku-keys.lock qs -c keys"]);
+            break;
+        case "screenshot":
+            Quickshell.execDetached(["ryoku-cmd-ryoshot"]);
+            break;
+        case "ask":
+            ShellState.requestSurfaceActive("ask", undefined);
+            break;
+        case "compress":
+            ShellState.requestSurfaceActive("ask#tools/compress", undefined);
+            break;
+        case "install":
+            ShellState.requestSurfaceActive("ask#tools/install", undefined);
+            break;
+        }
     }
 
-    function finishThemeIntro(token: string): void {
-      shell.bootIntro.finishTheme(token)
+    // With no global-shortcuts protocol a keybind reaches the shell by spawning
+    // `ryoku-shell <id>`. Shell-wide flag surfaces are handled here; frame menus
+    // and sidebars consume the same surfaceRequested bus in their per-monitor
+    // hosts, so each request still has exactly one owner.
+    Connections {
+        target: ShellState
+        function onSurfaceRequested(id, mon, ctx) {
+            switch (id) {
+            case "launcher":
+            case "clipboard":
+            case "gamebar":
+            case "settings":
+            case "cheatsheet":
+                if (!Config.styleOwns(id))
+                    root.toggleSurface(id);
+                break;
+            case "barToggle":
+            case "overview":
+            case "screenshot":
+            case "visualizer":
+            case "visualizer-overlay":
+            case "visualizer-place":
+                root.toggleSurface(id);
+                break;
+            }
+        }
     }
 
-    function themeIntroStatus(token: string): string {
-      return shell.bootIntro.themeStatus(token)
+    // In-process global shortcuts. Each dispatches to the one toggleSurface
+    // mapping above, so the compositor's global-shortcut bind and a `ryoku-shell`
+    // spawn drive the identical transition. Names match the compositor binds.
+    CustomShortcut {
+        name: "barToggle"
+        description: I18n.tr("Toggle the Ryoku frame bar on the active monitor")
+        onPressed: root.toggleSurface("barToggle")
+    }
+    CustomShortcut {
+        name: "launcher"
+        description: I18n.tr("Toggle the app launcher on the active monitor")
+        onPressed: ShellState.requestSurfaceActive("launcher", undefined)
+    }
+    CustomShortcut {
+        name: "overview"
+        description: I18n.tr("Toggle the workspace overview on the active monitor")
+        onPressed: root.toggleSurface("overview")
+    }
+    // On/off is the persisted key, so the keybind, the Hub switch and the next
+    // restart all read the same answer. Only the layer is per-monitor memory.
+    CustomShortcut {
+        name: "visualizer"
+        description: I18n.tr("Cycle the desktop audio visualiser off and on")
+        onPressed: root.toggleSurface("visualizer")
+    }
+    CustomShortcut {
+        name: "visualizer-overlay"
+        description: I18n.tr("Toggle the audio visualiser overlay over windows")
+        onPressed: root.toggleSurface("visualizer-overlay")
+    }
+    CustomShortcut {
+        name: "visualizer-place"
+        description: I18n.tr("Grab the audio visualiser's ring or orb and drag it into place")
+        onPressed: root.toggleSurface("visualizer-place")
     }
 
-    function themeIntroCoverStatus(token: string): string {
-      return shell.bootIntro.themeCoverStatus(token)
+    // Aiming a look happens in the Stage Editor now (docs/stage.md): the bind,
+    // the desktop menu row and the Hub hand-off all enter the edit session on
+    // the active monitor, where the look wears its placement grip like every
+    // other widget. A hidden spectrum aims nothing, so placing it shows it
+    // first. The editor's own Done/Escape leaves the session, so `off` only
+    // unwinds a session that is open.
+    function placeVisualizer(on) {
+        const st = ShellState.forActive();
+        if (!st)
+            return;
+        const mon = (st.modelData && st.modelData.name) ? st.modelData.name : "";
+        if (!on) {
+            if (StageCfg.StageSession.active)
+                StageCfg.StageSession.leave();
+            return;
+        }
+        if (!VizCfg.Config.enabled)
+            VizCfg.Config.setEnabled(true);
+        StageCfg.StageSession.enterWidgets(mon, "visualizer");
     }
 
-    function ping(): string {
-      return "ok"
+    // --- Root machinery (ported from the reference pill root) --------------
+
+    // Bring the durable services online and prewarm the slow scans so the first
+    // open of each surface is instant. Ported from pill/shell.qml 170-194:
+    // device restore + ddc prewarm and re-arming the persisted Keep-Awake /
+    // Game Mode external inhibitors.
+    Component.onCompleted: {
+        Quickshell.watchFiles = !Quickshell.shellDir.startsWith(
+            (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/");
+        Devices.restore();
+        root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        if (Flags.gameMode)
+            root.syncGameMode("start");
+        Devices.probeDisplays();
     }
 
-    function applyTheme(colorsB64: string, shellB64: string): string {
-      if (shell.bootIntro) shell.bootIntro.cancelTheme()
-      var background = shell.firstPartyServiceFor("kestrel.background")
-      if (background && typeof background.setPendingTheme === "function" && typeof background.applyPendingTheme === "function") {
-        background.setPendingTheme(colorsB64, shellB64)
-        background.applyPendingTheme()
-        return "ok"
-      }
-      var colorsRaw = ""
-      var shellRaw = ""
-      try { colorsRaw = Qt.atob(String(colorsB64 || "")) } catch (e) { colorsRaw = "" }
-      try { shellRaw = Qt.atob(String(shellB64 || "")) } catch (e2) { shellRaw = "" }
-      Commons.Color.loadColors(colorsRaw)
-      Commons.Color.loadShell(shellRaw)
-      Style.scheduleRefresh()
-      return "ok"
+    // Keep-Awake's durable inhibitor lives outside the shell so it survives a
+    // reload/restart: ryoku-cmd-caffeine runs systemd-inhibit independent of our
+    // lifetime, while the Wayland IdleInhibitor below only gives compositor-level
+    // effect. Every surface toggle just flips Flags.keepAwake. (pill 246-257)
+    function syncCaffeine(action) {
+        Quickshell.execDetached(["ryoku-cmd-caffeine", action]);
+    }
+    Connections {
+        target: Flags
+        function onKeepAwakeChanged() {
+            root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        }
     }
 
-    function rescanPlugins(): void {
-      shell.reloadPlugins()
+    // Game mode's compositor and WiFi tuning lives outside the shell, same shape
+    // as Keep-Awake: ryoku-cmd-game-mode (on PATH) drives it so the tuning
+    // survives a reload. The deck toggle just flips Flags.gameMode. It is
+    // compositor tuning though (Hyprland live config eval), so it only fires
+    // where the window manager can run it -- the deck tile and the launcher
+    // action hide it there, and this stands down to match instead of running a
+    // script that would no-op.
+    function syncGameMode(action) {
+        if (Wm.caps.liveConfigEval !== true)
+            return;
+        Quickshell.execDetached(["ryoku-cmd-game-mode", action]);
+    }
+    Connections {
+        target: Flags
+        function onGameModeChanged() {
+            root.syncGameMode(Flags.gameMode ? "start" : "stop");
+        }
     }
 
-    function reloadConfig(): string {
-      userConfigFile.reload()
-      return "ok"
+    // Do-not-disturb: the notification server suppresses popups while the flag is
+    // set (the deck toggle owns the flag). (pill 196-200)
+    Binding {
+        target: Notifs
+        property: "dnd"
+        value: Flags.dnd
     }
 
-    function toggleBarTransparency(): string {
-      if (shell.bar && typeof shell.bar.toggleTransparency === "function") {
-        shell.bar.toggleTransparency()
-        return "ok"
-      }
-      return "no-bar"
+    // Hosted desktop widgets that show the wallpaper (a photo widget with no
+    // photo picked) read a still of it from the stage config: the daemon's
+    // active picture, or a clip's live poster frame.
+    Binding {
+        target: StageIsland.Config
+        property: "hostWallpaperStill"
+        value: Session.wallIsVideo ? Session.livePoster : Session.wallpaper
     }
 
-    function setPluginEnabled(id: string, enabled: string): string {
-      return shell.pluginRegistry.setEnabled(id, enabled === "true") ? "ok" : "unknown"
+    // Compositor-level idle inhibitor, created only while Keep-Awake is on. It
+    // dies with the shell; the external caffeine bridge above keeps the durable
+    // one. (pill 202-214)
+    LazyLoader {
+        active: Flags.keepAwake
+        PanelWindow {
+            id: inhibitWin
+            visible: true
+            implicitWidth: 1
+            implicitHeight: 1
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Background
+            WlrLayershell.namespace: "ryoku-frame-inhibit"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            anchors { top: true; left: true }
+            IdleInhibitor { window: inhibitWin; enabled: true }
+        }
     }
 
-    function enablePlugin(id: string, placementJson: string): string {
-      try {
-        var placement = JSON.parse(placementJson || "{}")
-        if (shell.pluginRegistry.setEnabled(id, true, placement)) return "ok"
-        return shell.pluginRegistry.lastEnableError || "unknown"
-      } catch (e) {
-        return "invalid placement: " + e
-      }
+    // keyboard-return bounce. The frame overlay never unmaps, and dropping an
+    // Exclusive grab on a mapped layer strands the keyboard (the window looks
+    // active but cannot type). This 1x1 helper takes the grab and unmaps, which
+    // makes Hyprland hand the keyboard back. A per-monitor FrameSurfaceLifecycle
+    // pulses it through ShellState.focusRestoreRequested when a keyboard surface
+    // is dismissed, since the lifecycle is per-monitor but this window is single.
+    // (pill 216-237, 304-308)
+    property bool kbBounce: false
+    Timer {
+        id: kbBounceTimer
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    LazyLoader {
+        active: root.kbBounce
+        PanelWindow {
+            visible: true
+            implicitWidth: 1
+            implicitHeight: 1
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.namespace: "ryoku-frame-kbfocus"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            anchors { top: true; left: true }
+        }
+    }
+    Connections {
+        target: ShellState
+        function onFocusRestoreRequested() {
+            root.kbBounce = true;
+            kbBounceTimer.restart();
+        }
     }
 
-    // Enable, but only where the widget is not on the bar already, so a caller
-    // that cannot know whether it ran before leaves a placed widget alone.
-    function putBarWidget(id: string, placementJson: string): string {
-      try {
-        var error = shell.pluginRegistry.putBarWidget(id, JSON.parse(placementJson || "{}"))
-        return error ? error : "ok"
-      } catch (e) {
-        return "invalid placement: " + e
-      }
+    // the self-view is a recording companion: when the last capture stops, clear
+    // it so it does not linger. (pill 872-878)
+    Connections {
+        target: Recorder
+        function onAnyActiveChanged() {
+            if (!Recorder.anyActive)
+                Camera.active = false;
+        }
     }
 
-    function moveBarWidget(id: string, placementJson: string): string {
-      try {
-        var error = shell.pluginRegistry.moveBarWidget(id, JSON.parse(placementJson || "{}"))
-        return error ? error : "ok"
-      } catch (e) {
-        return "invalid placement: " + e
-      }
+    // The polkit agent streams its prompt on a topic rather than pushing a
+    // surface, so raise and drop the island from the state itself. (pill 321-329)
+    Connections {
+        target: Polkit
+        function onActiveChanged() {
+            if (Polkit.active) {
+                if (Config.barStyle !== "iris" && Config.barStyle !== "python")
+                    ShellState.requestSurface("polkit", "", undefined);
+            } else {
+                ShellState.closeSurface("polkit", "");
+            }
+        }
     }
 
-    function setBarWidget(id: string, key: string, valueJson: string, selectorJson: string): string {
-      try {
-        var value = JSON.parse(valueJson)
-        var selector = JSON.parse(selectorJson || "{}")
-        var error = shell.pluginRegistry.setBarWidget(id, key, value, selector)
-        return error ? error : "ok"
-      } catch (e) {
-        return "invalid widget setting: " + e
-      }
+    // Stash steps a running task's own surface aside when it needs the auth
+    // island. (pill 332-335)
+    Connections {
+        target: Stash
+        function onAuthStepAside(mon, id) { ShellState.closeSurface(id, mon); }
     }
 
-    function listPlugins(): string {
-      var out = []
-      var plugins = shell.pluginRegistry.installedPlugins
-      for (var id in plugins) {
-        var kinds = plugins[id].kinds || []
-        var isBarOption = Array.isArray(kinds) && kinds.indexOf("bar") !== -1
-        var isBarWidget = Array.isArray(kinds) && kinds.indexOf("bar-widget") !== -1
-        var active = isBarOption && shell.isActiveBarOption(id)
-        var metadata = plugins[id].kestrel
-        var clonedFrom = Util.isPlainObject(metadata) ? String(metadata.clonedFrom || "") : ""
-        out.push({
-          id: id,
-          name: plugins[id].name,
-          kinds: kinds,
-          // What `kestrel plugin enable/disable` toggles: for a widget that is
-          // its place in the bar, not whether its component is loadable.
-          enabled: isBarOption ? active
-            : (isBarWidget ? shell.pluginRegistry.inBar(id) : shell.pluginRegistry.isEnabled(id)),
-          active: active,
-          // A bar has no off, only a successor: you leave one by enabling
-          // another, so there is nothing for disable to do to it. Said here so
-          // that a caller offering the verbs does not have to read kinds and
-          // work it out again.
-          canDisable: !isBarOption,
-          firstParty: !!plugins[id].__isFirstParty,
-          clonedFrom: clonedFrom
-        })
-      }
-      // Consumers should not each invent their own presentation order.
-      out.sort(function(left, right) {
-        var leftName = String(left.name || left.id)
-        var rightName = String(right.name || right.id)
-        if (leftName < rightName) return -1
-        if (leftName > rightName) return 1
-        return String(left.id).localeCompare(String(right.id))
-      })
-      return JSON.stringify(out)
+    // Daemon-facing surface channel (Phase 10 points the daemon here). Target
+    // "shell" avoids the live pill's "pill" target; each call maps onto the
+    // ShellState surface bus. Ported from pill/shell.qml 341-364; the SocketServer
+    // fast path (pill 402-411) is deliberately omitted so this instance owns no
+    // runtime socket and produces zero live side effects alongside the daemon.
+    IpcHandler {
+        target: "shell"
+        // An empty monitor means "wherever focus is": the daemon sends "" when
+        // its focused-output cache is cold.
+        function openSurface(mon: string, id: string): void {
+            // these keys are Ryoku's under every style, so they skip the bus styles listen on, same as the Hyprland shortcuts
+            if (id === "gamebar") {
+                if (Config.gamebar.enabled)
+                    GameBarStore.toggleBar(mon);
+                return;
+            }
+            if (id === "launcher" || id === "clipboard" || id === "settings") {
+                root.toggleSurface(id);
+                return;
+            }
+            if (mon && mon.length > 0)
+                ShellState.requestSurface(id, mon, undefined);
+            else
+                ShellState.requestSurfaceActive(id, undefined);
+        }
+        function closeSurface(mon: string, id: string): void { ShellState.closeSurface(id, mon); }
+        function keyringPrompt(payload: string): void {
+            Keyring.apply(payload);
+            ShellState.keyringPromptChanged(Keyring.promptId);
+            ShellState.requestSurface("keyring", Keyring.mon !== "" ? Keyring.mon
+                : (ShellState.screens.length > 0 ? ShellState.screens[0].name : ""),
+                { promptId: Keyring.promptId });
+        }
+        function keyringHide(): void {
+            Keyring.clear();
+            ShellState.closeSurface("keyring", "");
+        }
+        function voiceShow(mon: string): void { ShellState.requestSurface("voice", mon, undefined); }
+        function voiceOff(mon: string): void { ShellState.requestSurface("voice-off", mon, undefined); }
+        function voiceHide(): void { ShellState.closeSurface("voice", ""); }
+        function pluginPopout(mon: string, id: string): void { ShellState.requestSurface("plugin:" + id, mon, undefined); }
+        function bar(mon: string, id: string): void { ShellState.requestSurface(id, mon, undefined); }
+        function closeAllMenus(mon: string): void { ShellState.closeSurface("", mon); }
+        function sessionConfirm(mon: string, action: string): void { ShellState.askSessionAction(action, mon); }
     }
 
-    // Returns the effective shell.json content as JSON. Useful for debugging
-    // and for CLI tools that want to inspect the merged state without
-    // re-implementing the load logic.
-    function listShellConfig(): string {
-      return JSON.stringify(shell.shellConfig || {})
+    // The Hub's "Place on the desktop" button lands here: a slider cannot let a
+    // user drop a ring where they want it, so the shell hands them the shape.
+    IpcHandler {
+        target: "visualizer"
+        function place(): string {
+            const st = ShellState.forActive();
+            if (!st)
+                return "No active display is available";
+            root.placeVisualizer(true);
+            return "ok";
+        }
+        function done(): string {
+            const st = ShellState.forActive();
+            if (!st)
+                return "No active display is available";
+            root.placeVisualizer(false);
+            return "ok";
+        }
+        function setEnabled(value: bool): string { VizCfg.Config.setEnabled(value); return "ok"; }
+        function cycleStyle(direction: int): string {
+            if (direction !== -1 && direction !== 1)
+                return "Style direction must be -1 or 1";
+            VizCfg.Config.cycleStyle(direction);
+            return "ok";
+        }
+        function setFps(value: int): string {
+            if ([30, 45, 60].indexOf(value) < 0)
+                return "Frame rate must be 30, 45 or 60";
+            VizCfg.Config.setFps(value);
+            return "ok";
+        }
+        function setAdaptive(value: bool): string { VizCfg.Config.setAdaptive(value); return "ok"; }
+        function setGain(value: real): string {
+            if (!isFinite(value) || value < 0.5 || value > 2)
+                return "Gain must be between 0.5 and 2";
+            VizCfg.Config.setGain(value);
+            return "ok";
+        }
+        function setSmoothing(value: real): string {
+            if (!isFinite(value) || value < 0 || value > 1)
+                return "Smoothing must be between 0 and 1";
+            VizCfg.Config.setSmoothing(value);
+            return "ok";
+        }
     }
 
-    function debugBarGeometry(): string {
-      return JSON.stringify(shell.bar && shell.bar.debugBarGeometry ? shell.bar.debugBarGeometry() : [])
+    // Ryoku Settings edits the Stage file through the shell's canonical typed
+    // service. The Hub never becomes a second writer for stage.json.
+    IpcHandler {
+        target: "stage-settings"
+        function setCutModel(mode: string, id: string): string {
+            StageCfg.Config.setCutModel(mode, id);
+            return "ok";
+        }
+        function setCutMatting(mode: string, value: bool): string {
+            StageCfg.Config.setCutMatting(mode, value);
+            return "ok";
+        }
+        function setEdge(mode: string, value: real): string {
+            StageCfg.Config.setEdge(mode, value);
+            return "ok";
+        }
+        function setShadow(mode: string, value: real): string {
+            StageCfg.Config.setShadow(mode, value);
+            return "ok";
+        }
+        function setShadowAngle(mode: string, value: real): string {
+            StageCfg.Config.setShadowAngle(mode, value);
+            return "ok";
+        }
+        function resetLook(mode: string): string {
+            StageCfg.Config.resetLook(mode);
+            return "ok";
+        }
+        function setMotion(mode: string, key: string, value: var): string {
+            StageCfg.Config.setMotion(mode, key, value);
+            return "ok";
+        }
+        function resetMotion(mode: string): string {
+            StageCfg.Config.resetMotion(mode);
+            return "ok";
+        }
+        function applyPreset(name: string): string {
+            StageCfg.Config.applyPreset(name);
+            return "ok";
+        }
+        function setSpatialModel(id: string): string {
+            StageCfg.Config.setSpatialModel(id);
+            return "ok";
+        }
+        function setDepthBackdrop(value: bool): string {
+            StageCfg.Config.setDepthBackdrop(value);
+            return "ok";
+        }
+        function setVisualizerFront(mode: string, value: bool): string {
+            StageCfg.Config.setFront(mode, "visualizer", value);
+            return "ok";
+        }
     }
 
-    function summon(id: string, payloadJson: string): string {
-      return shell.summon(id, payloadJson) ? "ok" : "unknown"
+    // Enter or leave the desktop-widget editor without the right-click menu, so
+    // a keybind or the daemon can open it. niri has no global-shortcut protocol,
+    // so every shell surface is driven this way; the editor is no exception.
+    IpcHandler {
+        id: desktopIpc
+        target: "desktop"
+        function editWidgets(mon: string): void {
+            desktopIpc.editSection("widgets", mon);
+        }
+        // Open the Stage Editor straight on one catalogue (widgets, wallpaper,
+        // style, visualizer, depth): the Hub's hand-offs and keybinds land on
+        // the editor they mean. Already open, it switches catalogue in place.
+        function editSection(section: string, mon: string): void {
+            var m = mon;
+            if (!m || m.length === 0) {
+                const st = ShellState.forActive();
+                m = (st && st.modelData) ? st.modelData.name : "";
+            }
+            // The editor targets one monitor by exact name; a cold focused-output
+            // cache (niri via a keybind before a window is focused) yields "",
+            // which matches no desktop, so fall back to the first output.
+            if (!m || m.length === 0)
+                m = ShellState.screens.length > 0 ? ShellState.screens[0].name : "";
+            if (StageCfg.StageSession.onMonitor(m))
+                StageCfg.StageSession.openSection(section);
+            else
+                StageCfg.StageSession.enterWidgets(m, section);
+        }
+        function editDone(): void { StageCfg.StageSession.leave(); }
+        // Open a widget's right-click menu on a monitor (empty = focused).
+        function menu(widget: string, mon: string): void {
+            var m = mon;
+            if (!m || m.length === 0) {
+                const st = ShellState.forActive();
+                m = (st && st.modelData) ? st.modelData.name : "";
+            }
+            ShellState.requestWidgetMenu(m, widget);
+        }
+        // Open a widget's inspector (Customize sheet) on a monitor (empty =
+        // focused), the off-surface twin of the right-click Customize row.
+        function customize(widget: string, mon: string): void {
+            var m = mon;
+            if (!m || m.length === 0) {
+                const st = ShellState.forActive();
+                m = (st && st.modelData) ? st.modelData.name : "";
+            }
+            ShellState.requestWidgetCustomize(m, widget);
+        }
     }
 
-    function hide(id: string): void {
-      shell.hide(id)
+    IpcHandler {
+        target: "keypresses"
+        readonly property bool active: Keypresses.active
+        readonly property string status: Keypresses.backendStatus
+        readonly property string lastEvent: Keypresses.lastEventSignature
+        readonly property string theme: Keypresses.theme
+        readonly property string mode: Keypresses.mode
+        readonly property real revision: Keypresses.previewRevision
+        function activate(theme: string, mode: string, revision: string): void {
+            Keypresses.activatePreview(theme, mode, revision);
+        }
+        function deactivate(revision: string): void {
+            Keypresses.deactivatePreview(revision);
+        }
+        function toggle(): void { Keypresses.toggle(); }
+    }
+    IpcHandler {
+        target: "camera"
+        readonly property bool active: Camera.active
+        function toggle(): void { Camera.toggle(); }
+    }
+    // Surface global shortcuts dispatch through the mapping above so compositor
+    // global shortcuts and the `ryoku-shell <id>` fallback behave identically.
+    CustomShortcut {
+        name: "quicksettings"
+        description: I18n.tr("Open the left sidebar on the active monitor")
+        onPressed: root.toggleSurface("quicksettings")
+    }
+    CustomShortcut {
+        name: "wallpaper-menu"
+        description: I18n.tr("Open the wallpaper and theme menu on the active monitor")
+        onPressed: root.toggleSurface("wallpaper-menu")
+    }
+    CustomShortcut {
+        name: "clipboard"
+        description: I18n.tr("Open the clipboard history on the active monitor")
+        onPressed: ShellState.requestSurfaceActive("clipboard", undefined)
+    }
+    CustomShortcut {
+        name: "gamebar"
+        description: I18n.tr("Toggle the Game Bar on the active monitor")
+        onPressed: root.toggleSurface("gamebar")
+    }
+    CustomShortcut {
+        name: "ask"
+        description: I18n.tr("Ask Rashin")
+        onPressed: root.toggleSurface("ask")
+    }
+    CustomShortcut {
+        name: "compress"
+        description: I18n.tr("Open Tools to compress media")
+        onPressed: root.toggleSurface("compress")
+    }
+    CustomShortcut {
+        name: "install"
+        description: I18n.tr("Open Tools to install a package")
+        onPressed: root.toggleSurface("install")
     }
 
-    function toggle(id: string, payloadJson: string): void {
-      shell.toggle(id, payloadJson)
-    }
-
-    // A bar section's panels answer to their position as well as their id, so a
-    // hotkey can mean "the third panel in the right section" and keep meaning
-    // it after the bar is rearranged. Returns the id it acted on, or "unknown"
-    // when the section holds no panel at that position.
-    function togglePanelAt(section: string, index: string): string {
-      var id = shell.bar && typeof shell.bar.panelWidgetIdAt === "function"
-        ? shell.bar.panelWidgetIdAt(section, index)
-        : ""
-      if (!id) return "unknown"
-      shell.toggle(id, "{}")
-      return id
-    }
-
-    function call(id: string, method: string, arg: string): string {
-      return shell.callIfLoaded(id, method, arg)
-    }
-  }
 }

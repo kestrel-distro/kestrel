@@ -3,7 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Ryoku.Ui.Singletons
+import "../../../Ryoku/Ui/Singletons"
 
 // One source for the shipped Ryoku edition strings every surface shows. The CLI
 // already knows how to resolve the version from a checkout and from an installed
