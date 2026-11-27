@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# kestrel:summary=Apply the current Kestrel theme to the desktop shell
+# kestrel:hidden=true
+
+# The shell reads its palette from ~/.config/ryoku/shell.json, so a theme switch
+# has to translate the theme's colors.toml into the Material roles the shell
+# paints with. Without this the shell keeps following the wallpaper and drifts
+# away from the theme every time it changes.
+
+set -euo pipefail
+
+THEME_COLORS="${1:-$HOME/.local/state/kestrel/current/theme/colors.toml}"
+SHELL_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/shell.json"
+
+[[ -f $THEME_COLORS ]] || exit 0
+command -v python3 >/dev/null 2>&1 || exit 0
+
+python3 - "$THEME_COLORS" "$SHELL_CONFIG" <<'PY'
+import json
+import pathlib
+import sys
+import tomllib
+
+colors_path = pathlib.Path(sys.argv[1])
+config_path = pathlib.Path(sys.argv[2])
+
+try:
+    colors = tomllib.loads(colors_path.read_text())
+except Exception:
+    sys.exit(0)
+
+def pick(*names, fallback="#000000"):
+    for name in names:
+        value = colors.get(name)
+        if isinstance(value, str) and value:
+            return value
+    return fallback
+
+palette = {
+    "surface": pick("background", fallback="#050508"),
+    "surfaceContainerLowest": pick("darker_background", "background"),
+    "surfaceContainerLow": pick("lighter_background", "background"),
+    "surfaceContainer": pick("dark_background", "background"),
+    "surfaceContainerHigh": pick("selection", "lighter_background"),
+    "onSurface": pick("foreground", "light_foreground", fallback="#c8c8d4"),
+    "onSurfaceVariant": pick("muted", "dark_foreground", fallback="#454555"),
+    "primary": pick("accent", "blue", fallback="#5a9ebf"),
+    "onPrimary": pick("background"),
+    "primaryContainer": pick("selection", "lighter_background"),
+    "onPrimaryContainer": pick("foreground"),
+    "secondary": pick("cyan", "blue"),
+    "tertiary": pick("magenta", "blue"),
+    "outline": pick("muted", "dark_foreground"),
+    "outlineVariant": pick("selection", "muted"),
+    "error": pick("red", fallback="#c05050"),
+    "onError": pick("background"),
+    "inverseSurface": pick("light_foreground", "foreground"),
+    "inverseOnSurface": pick("background"),
+}
+
+config = {}
+if config_path.exists():
+    try:
+        config = json.loads(config_path.read_text())
+    except Exception:
+        config = {}
+
+config["themePalette"] = palette
+config["matchWallpaper"] = False
+config_path.parent.mkdir(parents=True, exist_ok=True)
+config_path.write_text(json.dumps(config, indent=2) + "\n")
+PY

@@ -480,6 +480,7 @@ post_theme_commands=(
   kestrel-theme-set-vscode
   kestrel-theme-set-obsidian
   kestrel-theme-set-keyboard
+  kestrel-theme-set-shell
 )
 
 if [[ $THEME_HEADLESS != "1" ]]; then
