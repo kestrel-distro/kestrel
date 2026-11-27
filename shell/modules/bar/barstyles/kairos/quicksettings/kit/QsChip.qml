@@ -1,6 +1,6 @@
 import QtQuick
 import "../../../../../../services"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 
 // A quick-settings choice chip: filled with the accent when active.
 Rectangle {

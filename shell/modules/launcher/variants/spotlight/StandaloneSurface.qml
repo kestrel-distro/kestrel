@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/iris/frame"
 import "../../../../inir/modules/iris/palette"
 import "../../../../services/lib/screens.js" as Screens

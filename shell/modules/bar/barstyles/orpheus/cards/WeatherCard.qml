@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../../../../services"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../kit" as K
 
 Item {

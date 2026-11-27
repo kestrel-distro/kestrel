@@ -7,7 +7,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
-import inir
+import "../../../../inir"
 import "../../../../services" as Ryoku
 import "../../../../inir/services"
 import "../../../../inir/modules/common"

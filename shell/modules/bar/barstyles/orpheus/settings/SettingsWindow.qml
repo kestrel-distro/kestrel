@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import "../../../../../Ryoku/Blobs"
 import "../../../../../Ryoku/Ui/Singletons"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../kit" as K
 import "pages" as P
 import "." as S

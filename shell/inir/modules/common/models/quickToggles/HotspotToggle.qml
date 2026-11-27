@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 
-import inir
+import "../../../../../inir"
 import QtQuick
 import "../../../../../inir/services"
 import "../../../../../inir/modules/common"

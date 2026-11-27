@@ -4,7 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import "../../../../stage" as Stage
-import inir as Inir
+import "../../../../inir" as Inir
 import "../../../../services"
 import "../../../../modules/phone"
 import "../../../stage/Singletons" as StageCfg

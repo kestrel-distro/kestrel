@@ -316,12 +316,12 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import inir
+import "../../inir"
 import "../../inir/services"
-import inir.modules.common        // Config, Appearance, Directories, GlobalStates
-import inir.modules.common.functions // ColorUtils, StringUtils, DateUtils, FileUtils
-import inir.modules.common.widgets   // 130+ components (StyledText, MaterialSymbol, RippleButton, CircularProgress, Graph, CavaVisualizer...)
-import inir.modules.background.widgets // AbstractBackgroundWidget base class
+import "../../inir/modules/common"
+import "../../inir/modules/common/functions"
+import "../../inir/modules/common/widgets"
+import "../../inir/modules/background/widgets"
 
 AbstractBackgroundWidget {
     id: root

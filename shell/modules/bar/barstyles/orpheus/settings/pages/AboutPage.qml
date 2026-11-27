@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../../../../../Ryoku/Ui"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 import "../../kit" as K
 import "." as P
 

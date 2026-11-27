@@ -6,7 +6,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
 import "../../services" as Ryoku
-import inir
+import "../../inir"
 import "../../inir/modules/common"
 import "../../inir/modules/common/functions"
 import "../../inir/services"

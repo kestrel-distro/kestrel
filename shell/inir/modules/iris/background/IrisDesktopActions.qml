@@ -4,7 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import "../../../../Ryoku/Ui/Singletons"
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"

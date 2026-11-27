@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/widgets"
 import "../../../../inir/modules/iris/style"

@@ -1,6 +1,6 @@
 import QtQuick
 import "../../../../../../services"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 
 // Kairos quick-settings slider: a leading glyph and an accent-filled track.
 Item {

@@ -6,7 +6,7 @@ import Quickshell
 import Quickshell.Wayland
 import "../../../../../services"
 import "../../../../../Ryoku/Ui/Singletons"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../quicksettings/kit" as K
 import "." as S
 

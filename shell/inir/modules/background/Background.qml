@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 
-import inir
+import "../../../inir"
 import "../../../inir/services"
 import "../../../inir/modules/common"
 import "../../../inir/modules/common/widgets"

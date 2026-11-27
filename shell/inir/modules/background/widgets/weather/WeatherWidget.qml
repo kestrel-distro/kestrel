@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
-import inir
+import "../../../../../inir"
 import "../../../../../inir/services"
 import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/common/functions"

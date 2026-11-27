@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import Quickshell
 import "../../../../Ryoku/Ui/Singletons" as RyokuUi
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"

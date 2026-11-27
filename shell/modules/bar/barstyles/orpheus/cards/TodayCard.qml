@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import "../../../../../services"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../kit" as K
 import "../settings" as S
 import "../../../../../services/lib/calendar.js" as CalendarModel

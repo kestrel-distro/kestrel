@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Services.Mpris
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"

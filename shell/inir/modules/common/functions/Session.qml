@@ -1,5 +1,5 @@
 pragma Singleton
-import inir
+import "../../../../inir"
 import Quickshell
 import Quickshell.Io
 import QtQuick

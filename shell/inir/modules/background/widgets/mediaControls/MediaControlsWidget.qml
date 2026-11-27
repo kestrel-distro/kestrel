@@ -3,7 +3,7 @@ import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/common/widgets"
 import "../../../../../inir/modules/common/models"
 import "../../../../../inir/services"
-import inir
+import "../../../../../inir"
 import "../../../../../inir/modules/common/functions"
 import "../../../../../inir/modules/background/widgets"
 import "../../../../../inir/modules/background/widgets/instrument"

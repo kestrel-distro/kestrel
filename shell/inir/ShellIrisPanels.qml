@@ -1,6 +1,6 @@
 import QtQuick
 import Quickshell
-import inir
+import "../inir"
 
 Item {
     LazyLoader {

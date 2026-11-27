@@ -7,7 +7,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
-import inir
+import "../../inir"
 import "../../inir/modules/common"
 import "../../inir/modules/common/functions"
 import "../../inir/services/deferred"

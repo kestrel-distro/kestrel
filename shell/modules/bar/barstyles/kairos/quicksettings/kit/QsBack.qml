@@ -1,6 +1,6 @@
 import QtQuick
 import "../../../../../../services"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 
 // The modal back control.
 Item {

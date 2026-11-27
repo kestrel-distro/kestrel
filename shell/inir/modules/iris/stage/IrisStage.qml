@@ -6,7 +6,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
 import Quickshell.Services.SystemTray
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"

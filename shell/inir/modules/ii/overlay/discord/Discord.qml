@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import inir
+import "../../../../../inir"
 import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/common/widgets"
 import "../../../../../inir/modules/common/functions"

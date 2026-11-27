@@ -11,7 +11,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../../../../services"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../IslandMetrics.js" as Island
 
 Rectangle {

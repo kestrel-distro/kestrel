@@ -6,7 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import "../../Ryoku/Ui/Singletons"
-import inir
+import "../../inir"
 import "../../inir/modules/common"
 import "../../inir/services/deferred"
 

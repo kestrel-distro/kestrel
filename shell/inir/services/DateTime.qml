@@ -1,6 +1,6 @@
 pragma Singleton
 pragma ComponentBehavior: Bound
-import inir
+import "../../inir"
 import "../../inir/modules/common"
 import QtQuick
 import "../../Ryoku/Ui/Singletons" as RyokuUi

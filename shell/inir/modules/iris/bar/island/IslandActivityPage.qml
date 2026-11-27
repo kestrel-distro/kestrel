@@ -7,7 +7,7 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
-import inir
+import "../../../../../inir"
 import "../../../../../inir/services"
 import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/common/functions"

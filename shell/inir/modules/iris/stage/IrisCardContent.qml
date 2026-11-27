@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Widgets
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/services/deferred"
 import "../../../../inir/modules/common"

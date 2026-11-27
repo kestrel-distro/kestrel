@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/services/deferred"
 import "../../../../inir/modules/common"

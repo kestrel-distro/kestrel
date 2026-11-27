@@ -1,6 +1,6 @@
 import QtQuick
 import "../../../../../../services"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 
 // A quick-settings tile: accent disc, title over a status line, optional chevron.
 Rectangle {

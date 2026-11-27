@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Widgets
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/services/deferred"
 import "../../../../inir/modules/common"

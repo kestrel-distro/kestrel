@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../../../../services"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 
 // The Kairos clock island's power readout, in the hovered island's top-left
 // corner, opposite the gear. A laptop shows a drawn battery with the charge

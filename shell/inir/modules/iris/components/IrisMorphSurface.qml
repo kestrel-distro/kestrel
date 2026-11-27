@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Widgets
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"
 import "../../../../inir/modules/iris/frame"

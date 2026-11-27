@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/common"
 import "../../../../services" as Ryoku
 

@@ -13,7 +13,7 @@ import "../../../inir/modules/common/models"
 import "../../../inir/modules/mediaControls/components"
 import "../../../inir/services"
 import "../../../inir/services/deferred"
-import inir
+import "../../../inir"
 
 Item {
     id: root

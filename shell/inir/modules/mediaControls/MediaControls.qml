@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import "../../../inir/modules/common"
 import "../../../inir/modules/common/widgets"
 import "../../../inir/services"
-import inir
+import "../../../inir"
 import "../../../inir/modules/common/functions"
 import QtQuick
 import QtQuick.Layouts

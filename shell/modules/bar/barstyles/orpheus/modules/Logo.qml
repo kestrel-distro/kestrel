@@ -1,5 +1,5 @@
 import QtQuick
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../../../../../services"
 import "../kit" as K
 

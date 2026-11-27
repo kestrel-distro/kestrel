@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell.Widgets
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/iris/style"
 import "../../../../inir/modules/iris/components"

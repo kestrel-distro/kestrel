@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import "../../../../../../services"
-import shell.barkit as Pill
+import "../../../../../../barkit" as Pill
 import "../../../../../../Ryoku/Ui/Singletons"
 import "../kit" as K
 

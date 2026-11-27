@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/services/deferred"
 import "../../../../inir/modules/common"

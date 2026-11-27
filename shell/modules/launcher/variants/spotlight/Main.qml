@@ -8,7 +8,7 @@
 import QtQuick
 import Quickshell
 import "../../../../services"
-import inir
+import "../../../../inir"
 import "../../../../inir/services/deferred"
 import "../../../../inir/modules/common" as Iris
 import "." as SpotlightVariant

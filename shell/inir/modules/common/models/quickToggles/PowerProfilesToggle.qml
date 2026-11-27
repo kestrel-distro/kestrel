@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.UPower
-import inir
+import "../../../../../inir"
 import "../../../../../inir/services"
 import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/common/functions"

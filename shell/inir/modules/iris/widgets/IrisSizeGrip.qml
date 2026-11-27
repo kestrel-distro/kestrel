@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Shapes
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/iris/style"
 
 Item {

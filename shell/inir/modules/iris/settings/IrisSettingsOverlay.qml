@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/iris/frame"
 import "../../../../inir/modules/iris/components"
 import "../../../../inir/modules/iris/field" as Field

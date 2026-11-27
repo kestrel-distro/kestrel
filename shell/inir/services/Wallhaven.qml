@@ -2,7 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 import "../../inir/modules/common"
-import inir
+import "../../inir"
 import "../../inir/services"
 import QtQuick
 import Quickshell

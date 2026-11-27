@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 // AI usage desktop tile: the quiet wallpaper face of the same module data.
 // The bar face lives in IrisCompact.qml; both read UsageModel.
 import QtQuick
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/widgets"

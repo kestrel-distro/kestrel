@@ -8,7 +8,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../../../../services"
-import shell.barkit as Pill
+import "../../../../../barkit" as Pill
 import "../settings" as S
 import "../quicksettings" as Q
 import "../IslandMetrics.js" as Island

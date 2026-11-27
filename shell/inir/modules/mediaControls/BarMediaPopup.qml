@@ -9,7 +9,7 @@ import "../../../inir/modules/common/widgets"
 import "../../../inir/modules/common/functions"
 import "../../../inir/modules/common/models"
 import "../../../inir/services"
-import inir
+import "../../../inir"
 
 Item {
     id: root

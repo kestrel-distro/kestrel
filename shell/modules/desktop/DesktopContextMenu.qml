@@ -4,7 +4,7 @@ import Quickshell
 import "../../Ryoku/Ui/Singletons"
 import "../../services" as Services
 import "../stage/Singletons" as StageCfg
-import inir
+import "../../inir"
 import "Singletons"
 import "../../stage/modules/ii/background/shortcuts" as StageShortcuts
 

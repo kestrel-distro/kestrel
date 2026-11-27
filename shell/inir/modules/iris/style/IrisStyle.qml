@@ -4,7 +4,7 @@ import QtQuick
 import QtQml
 import Quickshell
 import "../../../../Ryoku/Ui/Singletons"
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"
 import "../../../../inir/services"

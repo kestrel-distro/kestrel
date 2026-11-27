@@ -6,7 +6,7 @@ import Quickshell.Io
 import QtMultimedia
 import Qt.labs.folderlistmodel
 import Qt5Compat.GraphicalEffects as GE
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/background/widgets"
 import "../../../../inir/modules/common"

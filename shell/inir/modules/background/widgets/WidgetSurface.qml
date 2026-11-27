@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Qt5Compat.GraphicalEffects as GE
 import Quickshell
-import inir
+import "../../../../inir"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/functions"
 import "../../../../inir/modules/common/widgets"

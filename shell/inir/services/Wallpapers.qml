@@ -6,7 +6,7 @@ import Quickshell
 import Quickshell.Io
 import QtCore
 import Qt.labs.folderlistmodel
-import inir
+import "../../inir"
 import "../../inir/modules/common"
 import "../../inir/modules/common/functions"
 import "../../inir/modules/common/models"

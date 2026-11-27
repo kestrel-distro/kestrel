@@ -5,7 +5,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import inir
+import "../../../inir"
 import "../../../inir/modules/common"
 import "../../../inir/modules/common/widgets"
 import "../../../inir/modules/iris/components"

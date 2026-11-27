@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import inir
+import "../../../inir"
 
 // The `region` IPC target. ryoshot owns the region-selector front, so every verb
 // here launches ryoshot (preselecting the matching tool) instead of opening an

@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Qt5Compat.GraphicalEffects
-import inir
+import "../../../../../inir"
 import "../../../../../inir/services"
 import "../../../../../inir/modules/common"
 import "../../../../../inir/modules/iris/style"

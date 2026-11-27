@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import "../../../../services" as Ryoku
-import inir
+import "../../../../inir"
 import "../../../../inir/services"
 import "../../../../inir/modules/common"
 import "../../../../inir/modules/common/widgets"

@@ -5,7 +5,7 @@ import Quickshell
 import "../../../Ryoku/Ui/Singletons"
 import "../../../inir/modules/common"
 import "../../../inir/services"
-import inir
+import "../../../inir"
 
 /**
  * NewsService - Google News RSS (no auth/API key required)
