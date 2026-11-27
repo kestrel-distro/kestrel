@@ -304,3 +304,4 @@ singleton IslandPolicy 1.0 bridge/IslandPolicy.qml
 singleton Persistent 1.0 bridge/Persistent.qml
 singleton Network 1.0 bridge/Network.qml
 singleton Notifications 1.0 bridge/Notifications.qml
+ScreencopyView 1.0 ScreencopyView.qml
