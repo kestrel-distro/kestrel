@@ -57,7 +57,7 @@ Item {
   readonly property int listHeight: root.rows.length > 0 ? root.visibleRows * rowHeight : 0
   readonly property int cardHeight: pad * 2 + headerHeight + 1 + searchHeight + 1
     + (root.rows.length > 0 ? groupHeight + listHeight : 0)
-    + chipsHeight + footerHeight
+    + chipsHeight + footerHeight + 1
 
   readonly property string groupLabel: {
     if (root.query.length === 0) return "ACTIONS"
