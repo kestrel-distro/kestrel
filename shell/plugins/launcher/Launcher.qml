@@ -31,14 +31,23 @@ Item {
 
   // ---------------------------------------------------------------- surfaces
   property color background: Commons.Color.launcher.background
+  readonly property color paper: {
+    // A sheet one step off the paper, so the card reads as a surface held over
+    // the desktop instead of a hole cut in the wallpaper.
+    var b = root.background
+    return Commons.Tokens.light ? Qt.darker(b, 1.02) : Qt.lighter(b, 1.9)
+  }
   property color foreground: Commons.Color.launcher.text
-  readonly property color rule: Commons.Tokens.lineSoft
-  readonly property color ruleStrong: Commons.Tokens.line
-  readonly property color muted: Commons.Tokens.inkMuted
-  readonly property color faint: Commons.Tokens.inkFaint
-  readonly property color chosenFill: Commons.Tokens.bone
-  readonly property color chosenInk: Commons.Tokens.inkOnBone
-  readonly property color chosenInkDim: Commons.Tokens.inkOnBoneDim
+  // Derive the rules and the two muted inks from this surface's own text
+  // colour: the card already resolved the theme's [launcher] role, and the
+  // shared ink tokens track the *window* foreground, which can lag a theme
+  // swap. This keeps the card internally consistent on any theme.
+  readonly property color ruleSoft: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.13)
+  readonly property color rule: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.26)
+  readonly property color ruleStrong: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.42)
+  readonly property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.66)
+  readonly property color faint: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.48)
+  readonly property color tint: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.06)
   readonly property string displayFamily: Commons.Tokens.displayFamily
   readonly property string uiFamily: Commons.Tokens.uiFamily
   readonly property string monoFamily: Commons.Tokens.monoFamily
@@ -214,8 +223,8 @@ Item {
       height: Math.min(root.cardHeight, panel.height - root.pad * 2)
       anchors.horizontalCenter: parent.horizontalCenter
       y: Math.max(root.pad, Math.round((panel.height - height) * 0.2))
-      radius: root.radius + 2
-      color: root.background
+      radius: root.radius + 4
+      color: root.paper
       border.width: 1
       border.color: root.ruleStrong
       opacity: root.reveal
@@ -326,16 +335,34 @@ Item {
           anchors.top: topRule.bottom
           height: root.searchHeight
 
-          Image {
+          Item {
             id: searchGlyph
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: Style.font.icon
+            width: Style.font.iconLarge
             height: width
-            source: Quickshell.iconPath("edit-find-symbolic", true)
-            sourceSize.width: width
-            sourceSize.height: height
-            opacity: 0.6
+            opacity: 0.55
+
+            Rectangle {
+              x: 1
+              y: 1
+              width: parent.width * 0.62
+              height: width
+              radius: width / 2
+              color: "transparent"
+              border.width: 1.5
+              border.color: root.muted
+            }
+
+            Rectangle {
+              x: parent.width * 0.58
+              y: parent.height * 0.62
+              width: 1.5
+              height: parent.height * 0.34
+              rotation: -45
+              transformOrigin: Item.TopLeft
+              color: root.muted
+            }
           }
 
           TextInput {
@@ -345,10 +372,10 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             color: root.foreground
-            selectionColor: root.chosenFill
-            selectedTextColor: root.chosenInk
+            selectionColor: root.ruleStrong
+            selectedTextColor: root.foreground
             font.family: root.uiFamily
-            font.pixelSize: Style.font.display
+            font.pixelSize: Style.font.heading + 4
             font.letterSpacing: 0.1
             clip: true
             focus: true
@@ -414,7 +441,7 @@ Item {
             font.family: root.monoFamily
             font.pixelSize: Math.max(9, Style.font.caption - 2)
             font.letterSpacing: 1.2
-            color: root.faint
+            color: root.muted
           }
         }
 
@@ -438,7 +465,18 @@ Item {
             width: ListView.view.width
             height: root.rowHeight
             radius: Math.min(root.radius, Style.space(5))
-            color: row.chosen ? root.chosenFill : "transparent"
+            color: row.chosen ? root.tint : "transparent"
+            border.width: row.chosen ? 1 : 0
+            border.color: root.ruleStrong
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              height: 1
+              color: root.rule
+              visible: !row.chosen && row.index < root.rows.length - 1
+            }
 
             readonly property bool chosen: index === root.selectedIndex && root.cursorActive
 
@@ -452,18 +490,26 @@ Item {
               onClicked: root.activate(row.index)
             }
 
-            Image {
+            Rectangle {
               id: rowIcon
               anchors.left: parent.left
               anchors.leftMargin: Style.spacing.md
               anchors.verticalCenter: parent.verticalCenter
-              width: Style.font.iconLarge
+              width: Style.font.iconLarge + 4
               height: width
-              source: row.modelData.icon
-              sourceSize.width: width
-              sourceSize.height: height
-              visible: row.modelData.icon.length > 0
-              smooth: true
+              radius: 3
+              color: root.tint
+              border.width: 1
+              border.color: row.chosen ? root.ruleStrong : root.rule
+
+              Text {
+                anchors.centerIn: parent
+                text: String(row.modelData.name || "?").charAt(0).toUpperCase()
+                font.family: root.monoFamily
+                font.pixelSize: Math.max(10, Style.font.caption)
+                color: root.foreground
+                opacity: 0.85
+              }
             }
 
             Column {
@@ -480,7 +526,7 @@ Item {
                 elide: Text.ElideRight
                 font.family: root.uiFamily
                 font.pixelSize: Style.font.title
-                color: row.chosen ? root.chosenInk : root.foreground
+                color: root.foreground
               }
 
               Text {
@@ -491,7 +537,7 @@ Item {
                 font.family: root.monoFamily
                 font.pixelSize: Math.max(9, Style.font.caption - 1)
                 font.letterSpacing: 0.4
-                color: row.chosen ? root.chosenInkDim : root.muted
+                color: root.muted
               }
             }
 
@@ -500,11 +546,11 @@ Item {
               anchors.right: parent.right
               anchors.rightMargin: Style.spacing.md
               anchors.verticalCenter: parent.verticalCenter
-              text: row.chosen ? "↵" : (row.modelData.hint || "")
+              text: row.chosen ? "ENTER" : (row.modelData.hint || "")
               font.family: root.monoFamily
-              font.pixelSize: Math.max(9, Style.font.caption - 1)
-              font.letterSpacing: 1.2
-              color: row.chosen ? root.chosenInkDim : root.faint
+              font.pixelSize: Math.max(9, Style.font.caption - 2)
+              font.letterSpacing: 1.3
+              color: row.chosen ? Commons.Color.launcher.selectedText : root.muted
             }
           }
         }
@@ -524,9 +570,9 @@ Item {
 
             Repeater {
               model: [
-                { label: "= 12*3", fill: "=12*3" },
-                { label: "/ lock", fill: "/lock" },
-                { label: "? wayland", fill: "? wayland" }
+                { label: "calc  12*3", fill: "=12*3" },
+                { label: "actions  lock", fill: "/lock" },
+                { label: "web  wayland", fill: "? wayland" }
               ]
 
               delegate: Rectangle {
@@ -534,7 +580,7 @@ Item {
                 height: Style.space(24)
                 width: chipText.implicitWidth + Style.spacing.md * 2
                 radius: 3
-                color: Commons.Tokens.tint5
+                color: root.tint
                 border.width: 1
                 border.color: root.rule
 
@@ -545,7 +591,8 @@ Item {
                   font.family: root.monoFamily
                   font.pixelSize: Math.max(9, Style.font.caption - 2)
                   font.letterSpacing: 0.8
-                  color: root.muted
+                  color: root.foreground
+                  opacity: 0.72
                 }
 
                 MouseArea {
@@ -585,7 +632,7 @@ Item {
             font.family: root.monoFamily
             font.pixelSize: Math.max(9, Style.font.caption - 2)
             font.letterSpacing: 1.4
-            color: root.faint
+            color: root.muted
           }
 
           Row {
@@ -595,8 +642,8 @@ Item {
 
             Repeater {
               model: [
-                { key: "↑↓", label: "MOVE" },
-                { key: "↵", label: "OPEN" },
+                { key: "UP/DN", label: "MOVE" },
+                { key: "ENTER", label: "OPEN" },
                 { key: "ESC", label: "CLOSE" }
               ]
 
@@ -608,7 +655,7 @@ Item {
                   height: Style.space(20)
                   width: keyLabel.implicitWidth + Style.spacing.sm * 2
                   radius: 3
-                  color: Commons.Tokens.tint5
+                  color: root.tint
                   border.width: 1
                   border.color: root.rule
 
@@ -628,7 +675,7 @@ Item {
                   font.family: root.monoFamily
                   font.pixelSize: Math.max(9, Style.font.caption - 2)
                   font.letterSpacing: 1.1
-                  color: root.faint
+                  color: root.muted
                 }
               }
             }
