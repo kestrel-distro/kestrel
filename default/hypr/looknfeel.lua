@@ -15,12 +15,15 @@ hl.config({
     },
 
     resize_on_border = false,
-    allow_tearing = false,
+    -- Fullscreen games opt into tearing through an `immediate` rule, so the
+    -- desktop itself is never unthrottled while a game gets the low-latency path.
+    allow_tearing = true,
     layout = "dwindle",
   },
 
   decoration = {
     rounding = 0,
+    rounding_power = 4,
     active_opacity = 1,
     inactive_opacity = 0.94,
 
@@ -88,22 +91,26 @@ hl.curve("easeInOutCubic", { type = "bezier", points = { { 0.65, 0.05 }, { 0.36,
 hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
 hl.curve("almostLinear", { type = "bezier", points = { { 0.5, 0.5 }, { 0.75, 1.0 } } })
 hl.curve("quick", { type = "bezier", points = { { 0.15, 0 }, { 0.1, 1 } } })
+-- A calm settle with a slight bloom as a window opens.
+hl.curve("ryokuBloom", { type = "bezier", points = { { 0.16, 1.12 }, { 0.24, 1 } } })
+hl.curve("ryokuSettle", { type = "bezier", points = { { 0.18, 0.86 }, { 0.24, 1 } } })
 
-hl.animation({ leaf = "global", enabled = true, speed = 10, bezier = "default" })
-hl.animation({ leaf = "border", enabled = true, speed = 5.39, bezier = "easeOutQuint" })
-hl.animation({ leaf = "windows", enabled = true, speed = 3.79, bezier = "easeOutQuint" })
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 4.1, bezier = "easeOutQuint", style = "popin 87%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.49, bezier = "linear", style = "popin 87%" })
-hl.animation({ leaf = "fadeIn", enabled = true, speed = 1.73, bezier = "almostLinear" })
-hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.46, bezier = "almostLinear" })
-hl.animation({ leaf = "fade", enabled = true, speed = 3.03, bezier = "quick" })
+hl.animation({ leaf = "global", enabled = true, speed = 3.2, bezier = "ryokuSettle" })
+hl.animation({ leaf = "border", enabled = true, speed = 3.5, bezier = "quick" })
+hl.animation({ leaf = "windows", enabled = true, speed = 3.2, bezier = "ryokuSettle" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 3.8, bezier = "ryokuBloom", style = "popin 78%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 2.4, bezier = "ryokuSettle", style = "popin 86%" })
+hl.animation({ leaf = "fadeIn", enabled = true, speed = 3.2, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeOut", enabled = true, speed = 2.2, bezier = "almostLinear" })
+hl.animation({ leaf = "fade", enabled = true, speed = 3, bezier = "almostLinear" })
 hl.animation({ leaf = "fadeSwitch", enabled = false })
-hl.animation({ leaf = "layers", enabled = true, speed = 3.81, bezier = "easeOutQuint" })
+hl.animation({ leaf = "layers", enabled = true, speed = 7, bezier = "easeOutQuint", style = "popin 90%" })
 hl.animation({ leaf = "layersIn", enabled = true, speed = 4, bezier = "easeOutQuint", style = "fade" })
 hl.animation({ leaf = "layersOut", enabled = true, speed = 1.5, bezier = "linear", style = "fade" })
-hl.animation({ leaf = "fadeLayersIn", enabled = true, speed = 1.79, bezier = "almostLinear" })
-hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 1.39, bezier = "almostLinear" })
-hl.animation({ leaf = "workspaces", enabled = false })
+hl.animation({ leaf = "fadeLayersIn", enabled = true, speed = 7, bezier = "easeOutQuint" })
+hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 7, bezier = "easeOutQuint" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 3.5, bezier = "easeOutQuint", style = "slide" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 6, bezier = "easeOutQuint", style = "slidefadevert 20%" })
 
 hl.config({
   dwindle = {
@@ -126,14 +133,24 @@ hl.config({
   render = {
     direct_scanout = 2,
     new_render_scheduling = true,
+    -- Fullscreen browsers can trigger an HDR mode switch that blanks panels.
+    cm_auto_hdr = 0,
   },
 
   misc = {
     disable_hyprland_logo = true,
     disable_splash_rendering = true,
     background_color = "rgb(000000)",
+    force_default_wallpaper = 0,
     disable_scale_notification = true,
     focus_on_activate = true,
+    -- Compositor-native ways out of DPMS, so a late or dead idle client never
+    -- leaves the panel black.
+    key_press_enables_dpms = true,
+    mouse_move_enables_dpms = true,
+    -- A centred float resize jumps in one frame without this, re-laying-out the
+    -- app mid-jump; animating lets Hyprland hand it one final-size configure.
+    animate_manual_resizes = true,
     anr_missed_pings = 3,
     on_focus_under_fullscreen = 1,
     initial_workspace_tracking = 0,
@@ -141,6 +158,12 @@ hl.config({
     -- Let a fresh shell re-acquire the session lock after the lock client
     -- died, so kestrel-restart-shell can recover the LOCK failsafe.
     allow_session_lock_restore = true,
+  },
+
+  xwayland = {
+    -- Chromium and Electron stay crisp on HiDPI instead of being upscaled.
+    force_zero_scaling = true,
+    use_nearest_neighbor = true,
   },
 
   cursor = {
