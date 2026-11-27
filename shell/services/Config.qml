@@ -351,6 +351,30 @@ Singleton {
 
         JsonAdapter {
             id: adapter
+            // Kestrel ships Titan Black as the opening palette, so a fresh
+            // session paints the theme instead of the shell's neutral defaults
+            // (which read as a light surface and flipped the clock's ink).
+            property var themePalette: ({
+                "surface": "#050508",
+                "surfaceContainerLowest": "#030305",
+                "surfaceContainerLow": "#141420",
+                "surfaceContainer": "#080810",
+                "surfaceContainerHigh": "#1a1a2a",
+                "onSurface": "#c8c8d4",
+                "onSurfaceVariant": "#454555",
+                "primary": "#5a9ebf",
+                "onPrimary": "#050508",
+                "primaryContainer": "#1a1a2a",
+                "onPrimaryContainer": "#c8c8d4",
+                "secondary": "#6ab0c8",
+                "tertiary": "#8070a0",
+                "outline": "#454555",
+                "outlineVariant": "#1a1a2a",
+                "error": "#c05050",
+                "onError": "#050508",
+                "inverseSurface": "#e0e0ea",
+                "inverseOnSurface": "#050508"
+            })
             property bool frameEnabled: true
             property real frameOpacity: 1
             property real frameThickness: 0
