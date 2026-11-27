@@ -24,7 +24,7 @@ Item {
     readonly property color inkSoft: date.pinned ? Qt.color(date.inkColorA) : Theme.inkDim
 
     readonly property var dp: Clk.dateParts(Now.date, Svc.Config.formatLoc)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, "#864647", Theme.brand, date.ink)
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, (Scheme.surfaceLstar > 50 ? "#864647" : Theme.accent), Theme.brand, date.ink)
     readonly property real px: Math.round(22 * date.s)
 
     implicitWidth: row.implicitWidth

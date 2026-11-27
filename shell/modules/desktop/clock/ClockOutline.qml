@@ -16,7 +16,7 @@ Item {
     property string inkColorA: ""
     property real s: 1
     readonly property color ink: Theme.inkOn2(face.underL, face.inkColorA)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, "#864647", Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, (Scheme.surfaceLstar > 50 ? "#864647" : Theme.accent), Theme.brand, face.ink)
     readonly property var t: Clk.parts(Now.date, Config.clock24h)
     readonly property real px: Math.round(190 * face.s)
 
