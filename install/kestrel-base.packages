@@ -104,6 +104,7 @@ qt6-base
 qt6-declarative=6.12.0-4
 qt6-imageformats
 qt6-multimedia
+qt6-quick3d
 qt6-svg
 qt6-wayland
 realtime-privileges
