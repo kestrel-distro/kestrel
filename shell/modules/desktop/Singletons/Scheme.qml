@@ -106,6 +106,21 @@ Singleton {
     // module loses this singleton to QtQuick's own Scheme type, so this is the
     // one place in the config that imports it.
     readonly property var inkTones: Ui.Ink.tones
+    // The shell's wallpaper tone map comes from the daemon, which is not shipped
+    // here; the theme surface carries the same information, so widget ink can
+    // still resolve against the right tone (white on a dark theme, dark on a
+    // light one) instead of the neutral 50 that reads as unreadable text.
+    readonly property real surfaceLstar: {
+        const c = root.surface;
+        const y = 0.2126 * Math.pow(c.r, 2.2) + 0.7152 * Math.pow(c.g, 2.2) + 0.0722 * Math.pow(c.b, 2.2);
+        return Math.max(0, Math.min(100, (y > 0 ? 116 * Math.pow(y, 1 / 3) - 16 : 0)));
+    }
+    Binding {
+        target: Ui.Ink
+        property: "themeLstar"
+        value: root.surfaceLstar
+    }
+
     readonly property real wallLstar: Ui.Ink.wallLstar
     function lstarAt(nx, ny, nw, nh) { return Ui.Ink.lstarAt(nx, ny, nw, nh); }
     function overLstar(bgL, plate) { return Ui.Ink.overLstar(bgL, plate); }

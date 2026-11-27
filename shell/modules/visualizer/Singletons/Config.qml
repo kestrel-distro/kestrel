@@ -563,7 +563,7 @@ Singleton {
 
         JsonAdapter {
             id: adapter
-            property bool enabled: true
+            property bool enabled: false
             property int bars: 64
             property real thickness: 0.58
             property real bloom: 0.6

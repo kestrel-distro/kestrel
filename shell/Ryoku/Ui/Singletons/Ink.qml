@@ -98,7 +98,8 @@ Singleton {
     property var wall: ({})
 
     // 50 before the first write, so neither pole is assumed.
-    readonly property real wallLstar: (typeof ink.wall.lstar === "number") ? ink.wall.lstar : 50
+    property real themeLstar: 50
+    readonly property real wallLstar: (typeof ink.wall.lstar === "number") ? ink.wall.lstar : ink.themeLstar
 
     // The daemon's detail map: the population stddev of L* per cell, same 8x8
     // shape and row-major order as the grid. null until a map carrying detail is
