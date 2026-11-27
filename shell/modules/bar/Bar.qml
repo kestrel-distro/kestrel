@@ -15,6 +15,7 @@ Item {
     signal surfaceRequested(string id, rect ownerRect)
     signal actionRequested(string id)
 
+
     // A rail's drawn band thickness: its size when it is on and holds widgets,
     // else 0. Side rails inset by the top and bottom bands so they clear those
     // bands at the shared corners instead of overlapping their widgets.

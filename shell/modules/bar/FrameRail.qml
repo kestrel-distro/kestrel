@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../services"
+import "../desktop/Singletons" as Desk
 
 // One bar edge: a fixed-thickness band pinned to its screen edge, holding the
 // three zones. It creates no surface (it is content inside the frame overlay).
@@ -33,10 +34,20 @@ Item {
     // reveal_child = revealed || hovered (contract 02 sec 4).
     readonly property bool shown: revealed || bandHover.hovered
 
+
     // Inter-widget gap inside a zone, scaled with the band so a thin bar keeps
     // the same visual rhythm as a full one. Without it the fixed-size buttons
     // butt edge to edge with no breathing room.
     readonly property real gap: 12 * Math.min(1, (rail.size || 48) / 48) * railScale
+
+    // Kestrel port: a solid band in the theme's main colour, painted behind the
+    // rail's widgets so the bar carries a surface of its own.
+    Rectangle {
+        anchors.fill: parent
+        z: -1
+        visible: root.band > 0
+        color: Desk.Theme.accent
+    }
 
     // Insets at the two ends of the rail's long axis so a rail clears the
     // perpendicular rails' bands at the shared corners instead of overlapping

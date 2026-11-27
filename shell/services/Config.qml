@@ -351,7 +351,7 @@ Singleton {
 
         JsonAdapter {
             id: adapter
-            property bool frameEnabled: false
+            property bool frameEnabled: true
             property real frameOpacity: 1
             property real frameThickness: 0
             property real frameCorner: 0

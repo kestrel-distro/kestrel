@@ -20,6 +20,7 @@ Shape {
     property real holeRadius: 8
     property color surface: "#101315"
     property color outline: "#565d60"
+
     property real strokeWidth: 2
 
     readonly property var holePoints: [

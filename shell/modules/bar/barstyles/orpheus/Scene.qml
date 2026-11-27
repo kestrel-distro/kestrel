@@ -38,6 +38,7 @@ Item {
     property var hoverCandidateAnchor: null
     property string hoverSwitchedKey: ""
     property double hoverSwitchedAt: 0
+
     property var hoverStates: ({})
     property var textModules: ({})
     property bool autoHidden: false
