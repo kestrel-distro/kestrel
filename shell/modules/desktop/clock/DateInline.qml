@@ -16,12 +16,15 @@ Item {
     // a pinned colour ("" = follow wallpaper) paints this strip's own ink.
     property string inkColorA: ""
     property real s: 1
-    readonly property color ink:     Theme.inkOn2(date.underL, date.inkColorA)
-    readonly property color inkDim:  Theme.inkDimOn2(date.underL, date.inkColorA)
-    readonly property color inkSoft: Theme.inkSoftOn2(date.underL, date.inkColorA)
+    // Kestrel port: palette roles, not a contrast colour computed on the
+    // wallpaper; a pinned per-widget colour still wins.
+    readonly property bool pinned: date.inkColorA !== ""
+    readonly property color ink:     date.pinned ? Qt.color(date.inkColorA) : Theme.ink
+    readonly property color inkDim:  date.pinned ? Qt.color(date.inkColorA) : Theme.inkDim
+    readonly property color inkSoft: date.pinned ? Qt.color(date.inkColorA) : Theme.inkDim
 
     readonly property var dp: Clk.dateParts(Now.date, Svc.Config.formatLoc)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, Theme.accentOn2(date.underL, date.inkColorA), Theme.brand, date.ink)
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, "#864647", Theme.brand, date.ink)
     readonly property real px: Math.round(22 * date.s)
 
     implicitWidth: row.implicitWidth

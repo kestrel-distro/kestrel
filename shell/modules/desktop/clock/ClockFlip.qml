@@ -20,7 +20,7 @@ Item {
     readonly property color inkSoft: Theme.inkSoftOn2(face.underL, face.inkColorA)
 
     readonly property var t: Clk.parts(Now.secondDate, Config.clock24h)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, Theme.accentOn2(face.underL, face.inkColorA), Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, "#864647", Theme.brand, face.ink)
     property real s: 1
     readonly property real ch: Math.round(104 * s)
     readonly property real cw: Math.round(face.ch * 0.72)

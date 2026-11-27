@@ -24,7 +24,7 @@ Item {
     readonly property bool pinned: face.inkColorA !== ""
     readonly property color ink: face.pinned ? Qt.color(face.inkColorA) : Theme.ink
     readonly property color inkDim: face.pinned ? Qt.color(face.inkColorA) : Theme.inkDim
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, Theme.accent, Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, "#864647", Theme.brand, face.ink)
 
     readonly property var t: Clk.parts(Now.date, Config.clock24h)
     readonly property var dt: Clk.dateParts(Now.date)
