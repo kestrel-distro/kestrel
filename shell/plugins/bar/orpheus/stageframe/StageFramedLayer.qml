@@ -13,7 +13,11 @@ Item {
   property real screenHeight: 0
   readonly property bool framed: false
   readonly property Item rest: restItem
-  readonly property real extent: height
+  // The layer's requested thickness, never its own height: the scene binds the
+  // window's implicitHeight to this, so deriving it from `height` closes a
+  // binding cycle (height -> implicitHeight -> extent -> height) and Qt dies of
+  // stack overflow before the bar is ever mapped.
+  readonly property real extent: Math.max(1, restThickness)
 
   function maskRect(rect) { return rect }
 
