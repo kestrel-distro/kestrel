@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick3D
-import Ryoku.Spatial3D 1.0
+import "../Ryoku/Spatial3D"
 import "Singletons"
 
 // The background half of the Stage scene: a depth-displaced mesh under the
