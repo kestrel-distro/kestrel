@@ -69,7 +69,7 @@ Item {
     return "APPLICATIONS"
   }
 
-  readonly property real reveal: root.opened ? 1 : 0
+  property real reveal: root.opened ? 1 : 0
   Behavior on reveal {
     NumberAnimation { duration: Style.duration(140); easing.type: Easing.OutCubic }
   }
