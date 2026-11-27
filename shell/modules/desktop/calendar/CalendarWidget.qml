@@ -11,7 +11,7 @@ import "../../../Ryoku/Ui/Singletons"
 Item {
     id: root
 
-    property string style: "glass"
+    property string style: "paper"
     property int weeks: 6
     property bool showWeekNumbers: true
     property string holidayRegion: ""
