@@ -70,4 +70,25 @@ config["themePalette"] = palette
 config["matchWallpaper"] = False
 config_path.parent.mkdir(parents=True, exist_ok=True)
 config_path.write_text(json.dumps(config, indent=2) + "\n")
+
+# The live palette the shell's widgets read directly, so they retint with the
+# theme instead of falling back to their compiled defaults.
+cache = pathlib.Path.home() / ".cache/ryoku/colors.json"
+cache.parent.mkdir(parents=True, exist_ok=True)
+cache.write_text(json.dumps(palette, indent=2) + "\n")
 PY
+
+# The shell paints a still from the theme while no wallpaper daemon runs.
+theme_dir="$(dirname "$THEME_COLORS")"
+still=""
+for candidate in "$theme_dir"/backgrounds/*.jpg "$theme_dir"/backgrounds/*.jpeg \
+  "$theme_dir"/backgrounds/*.png "$theme_dir"/backgrounds/*.webp; do
+  if [[ -f $candidate ]]; then
+    still=$candidate
+    break
+  fi
+done
+if [[ -n $still ]]; then
+  mkdir -p "$(dirname "$SHELL_CONFIG")/ryoku"
+  printf '%s\n' "$still" >"$(dirname "$SHELL_CONFIG")/ryoku/wallpaper"
+fi

@@ -33,9 +33,37 @@ Item {
         id: frame
         screenName: root.screen ? root.screen.name : ""
     }
-    readonly property string wallpaperUrl: frame.path.length > 0
-        ? "file://" + frame.path + "?v=" + frame.revision : ""
-    readonly property string wallpaperPath: frame.path
+    // Kestrel port: the wallpaper daemon is not shipped, so a still from the
+    // theme stands in when no frame has arrived.
+    property string stillText: ""
+    readonly property string stillPath: stillText.trim()
+    readonly property string wallpaperPath: frame.path.length > 0 ? frame.path : stillPath
+    readonly property string wallpaperUrl: wallpaperPath.length > 0
+        ? "file://" + wallpaperPath + "?v=" + frame.revision + (frame.path.length > 0 ? "" : "-still") : ""
+
+    FileView {
+        id: still
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/wallpaper"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: root.stillText = text()
+        onFileChanged: root.stillText = text()
+        Component.onCompleted: root.stillText = text()
+    }
+
+    // Kestrel port: paint the theme's still directly, since the wallpaper
+    // daemon that normally feeds the desktop backdrop is not shipped.
+    Image {
+        id: stillPainter
+        anchors.fill: parent
+        visible: frame.path.length === 0 && root.stillPath.length > 0
+        source: root.stillPath.length > 0 ? "file://" + root.stillPath : ""
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: false
+        z: -1
+    }
     readonly property string fit: frame.fit
     // The reveal preset for the current revision (null = plain crossfade).
     readonly property var transition: frame.transition
@@ -53,7 +81,7 @@ Item {
     readonly property bool scenePointer: frame.pointer
     // The first topic frame gates readiness, not the in-shell decode: the
     // backdrop itself waits on the Image decode before revealing.
-    readonly property bool reloadReady: frame.ready
+    readonly property bool reloadReady: frame.ready || stillPath.length > 0
 
     readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryogami.sock"
 
