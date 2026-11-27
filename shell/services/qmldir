@@ -60,3 +60,5 @@ singleton StatsFeed StatsFeed.qml
 singleton AppLaunch AppLaunch.qml
 singleton Icons Icons.qml
 singleton BatteryAlerts BatteryAlerts.qml
+CavaFeed 1.0 CavaFeed.qml
+SystemMonitor 1.0 SystemMonitor.qml

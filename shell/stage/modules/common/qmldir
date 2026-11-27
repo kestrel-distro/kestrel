@@ -16,3 +16,4 @@ singleton SettingsPageRegistry 1.0 SettingsPageRegistry.qml
 singleton ShellModePolicy 1.0 ShellModePolicy.qml
 singleton TouchGestureActionRegistry 1.0 TouchGestureActionRegistry.qml
 singleton WeatherIcons 1.0 WeatherIcons.qml
+SystemMonitor 1.0 SystemMonitor.qml

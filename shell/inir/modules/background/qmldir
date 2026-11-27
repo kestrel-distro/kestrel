@@ -1,2 +1,4 @@
 module inir.modules.background
 Background 1.0 Background.qml
+CavaFeed 1.0 CavaFeed.qml
+SystemMonitor 1.0 SystemMonitor.qml

@@ -4,3 +4,5 @@ singleton Waveform Waveform.qml
 singleton Config Config.qml
 singleton Performance Performance.qml
 VizItem VizItem.qml
+CavaFeed 1.0 CavaFeed.qml
+WaveCapture 1.0 WaveCapture.qml
