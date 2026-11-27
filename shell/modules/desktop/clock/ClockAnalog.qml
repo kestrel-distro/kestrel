@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
+import "../../../services" as Svc
 import "lib/clock.js" as Clk
 
 // analog face. clean dial with twelve ticks (quarters bright), bright ink
@@ -20,7 +21,7 @@ Item {
     readonly property color inkSoft: Theme.inkSoftOn2(face.underL, face.inkColorA)
 
     readonly property var t: Clk.parts(Now.secondDate, Config.clock24h)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, (Scheme.surfaceLstar > 50 ? "#864647" : Theme.accent), Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent("", Svc.Config.clockAccentColor && Svc.Config.clockAccentColor.length > 0 ? Svc.Config.clockAccentColor : Theme.accent, Theme.brand, face.ink)
     readonly property real dia: Math.round(220 * face.s)
     property real s: 1
 

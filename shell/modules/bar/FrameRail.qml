@@ -46,7 +46,8 @@ Item {
         anchors.fill: parent
         z: -1
         visible: root.band > 0
-        color: Desk.Theme.accent
+        color: Config.barBackground && Config.barBackground.length > 0
+            ? Config.barBackground : Desk.Theme.surface
     }
 
     // Insets at the two ends of the rail's long axis so a rail clears the

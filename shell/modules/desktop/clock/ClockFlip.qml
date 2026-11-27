@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
+import "../../../services" as Svc
 import "lib/clock.js" as Clk
 
 // flip face: split-flap cards, one per digit. fold edge-on, swap, fold back
@@ -20,7 +21,7 @@ Item {
     readonly property color inkSoft: Theme.inkSoftOn2(face.underL, face.inkColorA)
 
     readonly property var t: Clk.parts(Now.secondDate, Config.clock24h)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, (Scheme.surfaceLstar > 50 ? "#864647" : Theme.accent), Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent("", Svc.Config.clockAccentColor && Svc.Config.clockAccentColor.length > 0 ? Svc.Config.clockAccentColor : Theme.accent, Theme.brand, face.ink)
     property real s: 1
     readonly property real ch: Math.round(104 * s)
     readonly property real cw: Math.round(face.ch * 0.72)

@@ -9,6 +9,10 @@ dark_background = "#e9eaef"
 darker_background = "#dfe1e8"
 lighter_background = "#ffffff"
 
+# Shell surfaces
+bar_background = "#f4f5f7"
+clock_accent = "#b04040"
+
 foreground = "#23232e"
 dark_foreground = "#5a5a6a"
 light_foreground = "#15151c"

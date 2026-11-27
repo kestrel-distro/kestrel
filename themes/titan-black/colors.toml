@@ -20,6 +20,10 @@ orange = "#b87848"
 green = "#60a080"
 cyan = "#6ab0c8"
 blue = "#5a9ebf"
+
+# Shell surfaces
+bar_background = "#1b3a4a"
+clock_accent = "#7ac0d8"
 magenta = "#8070a0"
 brown = "#6a5848"
 

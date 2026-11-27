@@ -27,6 +27,8 @@ Singleton {
     property alias frameOpacity:   adapter.frameOpacity
     property alias frameThickness: adapter.frameThickness
     property alias frameCorner:    adapter.frameCorner
+    property alias barBackground:  adapter.barBackground
+    property alias clockAccentColor: adapter.clockAccentColor
 
     // osd = the volume/brightness flash and notification toasts: small edge
     // windows that share the frame surface. osdRadius rounds their corners,
@@ -379,6 +381,8 @@ Singleton {
             property real frameOpacity: 1
             property real frameThickness: 0
             property real frameCorner: 0
+            property string barBackground: "#1b3a4a"
+            property string clockAccentColor: "#7ac0d8"
             property real osdRadius: 0
             property real osdOpacity: 1
             property bool deckFrostEnabled: true

@@ -68,6 +68,11 @@ if config_path.exists():
 
 config["themePalette"] = palette
 config["matchWallpaper"] = False
+# Surface colours the shell paints with outside the Material roles.
+if isinstance(colors.get("bar_background"), str):
+    config["barBackground"] = colors["bar_background"]
+if isinstance(colors.get("clock_accent"), str):
+    config["clockAccentColor"] = colors["clock_accent"]
 config_path.parent.mkdir(parents=True, exist_ok=True)
 config_path.write_text(json.dumps(config, indent=2) + "\n")
 

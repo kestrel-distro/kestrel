@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import "../Singletons"
+import "../../../services" as Svc
 import "lib/clock.js" as Clk
 
 /**
@@ -24,7 +25,7 @@ Item {
     readonly property bool pinned: face.inkColorA !== ""
     readonly property color ink: face.pinned ? Qt.color(face.inkColorA) : Theme.ink
     readonly property color inkDim: face.pinned ? Qt.color(face.inkColorA) : Theme.inkDim
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, (Scheme.surfaceLstar > 50 ? "#864647" : Theme.accent), Theme.brand, face.ink)
+    readonly property color accent: Clk.pickAccent("", Svc.Config.clockAccentColor && Svc.Config.clockAccentColor.length > 0 ? Svc.Config.clockAccentColor : Theme.accent, Theme.brand, face.ink)
 
     readonly property var t: Clk.parts(Now.date, Config.clock24h)
     readonly property var dt: Clk.dateParts(Now.date)
