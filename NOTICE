@@ -9,8 +9,9 @@ portions; they are compatible with, and redistributed here under, GPLv3.
 
 Ryoku (https://github.com/ryoku-dev/ryoku) is distributed under the GNU General
 Public License version 3. Kestrel vendors Ryoku's QML design system
-(shell/Ryoku/Ui: tokens, primitives and motion) and adopts its design language,
-palette pipeline and shell surfaces. Ryoku's own attribution notice follows:
+(shell/Ryoku/Ui: tokens, primitives and motion), adopts its design language,
+palette pipeline, compositor motion and shell surfaces, and ships its default
+wallpaper as a theme background. Ryoku's own attribution notice follows:
 
   Ryoku
 
