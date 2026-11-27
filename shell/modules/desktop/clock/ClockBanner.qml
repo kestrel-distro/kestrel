@@ -17,9 +17,14 @@ Item {
     // a pinned colour ("" = follow wallpaper) paints this face's own ink.
     property string inkColorA: ""
     property real s: 1
-    readonly property color ink: Theme.inkOn2(face.underL, face.inkColorA)
-    readonly property color inkDim: Theme.inkDimOn2(face.underL, face.inkColorA)
-    readonly property color accent: Clk.pickAccent(Config.clockAccent, Theme.accentOn2(face.underL, face.inkColorA), Theme.brand, face.ink)
+    // Kestrel port: the time and date take the theme's own text and accent
+    // roles instead of a contrast colour computed on the wallpaper, so the
+    // clock is literally part of the palette (c8c8d4 on Titan Black, 23232e on
+    // Titan Light). A pinned per-widget colour still wins.
+    readonly property bool pinned: face.inkColorA !== ""
+    readonly property color ink: face.pinned ? Qt.color(face.inkColorA) : Theme.ink
+    readonly property color inkDim: face.pinned ? Qt.color(face.inkColorA) : Theme.inkDim
+    readonly property color accent: Clk.pickAccent(Config.clockAccent, Theme.accent, Theme.brand, face.ink)
 
     readonly property var t: Clk.parts(Now.date, Config.clock24h)
     readonly property var dt: Clk.dateParts(Now.date)
