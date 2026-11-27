@@ -1,16 +1,21 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+import Quickshell.Widgets
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
 import "LauncherModel.js" as Model
 
-// The command palette: a paper card over the desktop, one search row, ranked
-// results and a footer of key hints. Apps come from the shell's own
-// AppLibrary, so hidden entries, icons and the launch path match the menu.
-// Prefixes route the query: "=" calculates, "?" searches the web, "/" lists
-// actions; a bare query searches apps and falls back to actions, then the web.
+// The command palette, in the paper-and-ink language: one sheet of paper on a
+// dimmed desktop, a search line ruled off from the results, and a footer of key
+// hints set in micro caps. The chosen row is not tinted with colour; it is
+// inverted to bone, the language's only emphasis.
+//
+// Apps come from the shell AppLibrary, so hidden entries, icons and the launch
+// path match the menu. Prefixes route the query: "=" calculates, "?" searches
+// the web, "/" lists actions; a bare query searches apps and falls back to the
+// action catalogue, then the web.
 Item {
   id: root
 
@@ -24,21 +29,29 @@ Item {
   property bool cursorActive: false
   property var rows: []
 
+  // Surfaces follow the theme's [launcher] section; the ink, rules and the
+  // inversion pair come from the shared design tokens.
   property color background: Commons.Color.launcher.background
   property color foreground: Commons.Color.launcher.text
-  property color border: Commons.Color.launcher.border
-  property var borderSpec: Border.surfaceSpec("launcher", "border", border, Math.max(1, Style.space(2)))
-  property color scrim: Commons.Color.launcher.scrim
-  property color selectedBackground: Commons.Color.launcher.selectedBackground
-  property color selectedText: Commons.Color.launcher.selectedText
-  readonly property int cornerRadius: Style.cornerRadius
-  property string fontFamily: Style.font.menuFamily
-  property int contentMargin: Style.spacing.panelPadding
-  property int rowHeight: Math.max(Style.space(44), Style.font.body + Style.spacing.controlPaddingY * 2)
-  property int searchHeight: Math.max(Style.space(52), Style.font.title + Style.spacing.controlPaddingY * 2)
-  readonly property int cardWidth: Math.min(Style.space(620), panel.width - Style.gapsOut * 2)
-  readonly property int visibleRows: Math.min(root.rows.length, 8)
-  readonly property int cardHeight: contentMargin * 2 + searchHeight + (root.rows.length > 0 ? Style.spacing.md + visibleRows * rowHeight + Style.spacing.md : 0) + Style.font.caption + Style.spacing.md
+  readonly property color cardBorder: Commons.Tokens.line
+  readonly property color muted: Commons.Tokens.inkMuted
+  readonly property color faint: Commons.Tokens.inkFaint
+  readonly property color rule: Commons.Tokens.lineSoft
+  readonly property color chosenFill: Commons.Tokens.bone
+  readonly property color chosenInk: Commons.Tokens.inkOnBone
+  readonly property color chosenInkDim: Commons.Tokens.inkOnBoneDim
+  readonly property string displayFamily: Commons.Tokens.displayFamily
+  readonly property string uiFamily: Commons.Tokens.uiFamily
+  readonly property string monoFamily: Commons.Tokens.monoFamily
+  readonly property int radius: Commons.Tokens.radius
+
+  property int outerMargin: Style.spacing.panelPadding + Style.spacing.sm
+  property int rowHeight: Math.max(Style.space(46), Style.font.body + Style.spacing.rowPaddingX * 2)
+  property int searchHeight: Math.max(Style.space(56), Style.font.title + Style.spacing.rowPaddingX * 2)
+  readonly property int cardWidth: Math.min(Style.space(640), panel.width - outerMargin * 2)
+  readonly property int visibleRows: Math.min(root.rows.length, 9)
+  readonly property int resultsHeight: root.rows.length > 0 ? visibleRows * rowHeight : 0
+  readonly property int cardHeight: outerMargin + searchHeight + 1 + (resultsHeight > 0 ? Style.spacing.sm + resultsHeight : 0) + Style.space(40) + outerMargin
 
   function open(payloadJson) {
     root.query = ""
@@ -65,8 +78,7 @@ Item {
         id: String(entry.id || ""),
         name: library.entryName(entry),
         subtext: library.entrySubtext(entry),
-        icon: library.iconSource(entry.icon || ""),
-        glyph: ""
+        icon: library.iconSource(entry.icon || "")
       })
     }
     return out
@@ -81,8 +93,7 @@ Item {
         id: actions[i].id,
         name: actions[i].name,
         subtext: actions[i].subtext,
-        icon: "",
-        glyph: actions[i].glyph,
+        icon: ((root.shell && root.shell.appLibrary) ? root.shell.appLibrary.iconSource(actions[i].icon || "") : ""),
         command: actions[i].command
       })
     }
@@ -92,13 +103,13 @@ Item {
   function calcRow(q) {
     var value = Model.calculate(q)
     if (!value) return null
-    return { kind: "calc", id: "calc", name: value, subtext: "Copy result", icon: "", glyph: "\uf1ec", payload: value }
+    return { kind: "calc", id: "calc", name: value, subtext: "Copy result", icon: "", payload: value }
   }
 
   function webRow(q) {
     var value = Model.webQuery(q)
     if (!value) return null
-    return { kind: "web", id: "web", name: value, subtext: "Search the web", icon: "", glyph: "\uf002", payload: value }
+    return { kind: "web", id: "web", name: value, subtext: "Search the web", icon: "", payload: value }
   }
 
   function refresh() {
@@ -153,7 +164,7 @@ Item {
       root.query = ""
       return
     }
-    Qt.callLater(function() { if (searchField) searchField.forceActiveFocus() })
+    Qt.callLater(function() { if (searchInput) searchInput.forceActiveFocus() })
   }
 
   OverlayWindow {
@@ -164,8 +175,11 @@ Item {
 
     Rectangle {
       anchors.fill: parent
-      color: root.scrim
+      color: Qt.rgba(0, 0, 0, 0.35)
       opacity: root.opened ? 1 : 0
+      Behavior on opacity {
+        NumberAnimation { duration: Style.duration(120); easing.type: Easing.OutCubic }
+      }
     }
 
     MouseArea {
@@ -174,16 +188,18 @@ Item {
       onClicked: root.close()
     }
 
-    BorderSurface {
+    // The sheet itself: paper, one hairline, a ruled search line. No shadow, no
+    // accent border — depth is the rule, not a stroke around the card.
+    Rectangle {
       id: card
       width: root.cardWidth
-      height: Math.min(root.cardHeight, panel.height - Style.gapsOut * 2)
+      height: Math.min(root.cardHeight, panel.height - root.outerMargin * 2)
       anchors.horizontalCenter: parent.horizontalCenter
-      y: Math.max(Style.gapsOut, Math.round((panel.height - height) * 0.22))
-      radius: root.cornerRadius
+      y: Math.max(root.outerMargin, Math.round((panel.height - height) * 0.2))
+      radius: root.radius
       color: root.background
-      borderSpec: root.borderSpec
-      padding: root.contentMargin
+      border.width: 1
+      border.color: root.cardBorder
 
       MouseArea { anchors.fill: parent; onClicked: {} }
 
@@ -215,171 +231,198 @@ Item {
           }
         }
 
-        Column {
-          anchors.fill: parent
-          spacing: 0
+        Item {
+          id: searchRow
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: parent.top
+          anchors.leftMargin: root.outerMargin
+          anchors.rightMargin: root.outerMargin
+          height: root.searchHeight
 
-          Item {
-            width: parent.width
-            height: root.searchHeight
-
-            Text {
-              id: searchGlyph
-              anchors.left: parent.left
-              anchors.verticalCenter: parent.verticalCenter
-              text: "\uf002"
-              font.family: "Symbols Nerd Font"
-              font.pixelSize: Style.font.icon
-              color: Commons.Tokens.inkMuted
-            }
-
-            TextField {
-              id: searchField
-              anchors.left: searchGlyph.right
-              anchors.leftMargin: Style.spacing.md
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              placeholderText: "Search apps, actions, =calc, ?web"
-              foreground: Commons.Color.launcher.text
-              accent: Commons.Color.launcher.selectedText
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.title
-              horizontalPadding: 0
-              verticalPadding: Style.spacing.sm
-              text: root.query
-              onTextChanged: if (text !== root.query) {
-                root.query = text
-                root.cursorActive = false
-              }
-
-              Keys.onReturnPressed: function(event) {
-                root.activate(root.cursorActive ? root.selectedIndex : 0)
-                event.accepted = true
-              }
-            }
+          Image {
+            id: searchGlyph
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: Style.font.icon
+            height: width
+            source: Quickshell.iconPath("edit-find-symbolic", true)
+            sourceSize.width: width
+            sourceSize.height: height
+            opacity: 0.55
           }
 
-          Rectangle {
-            width: parent.width
-            height: root.rows.length > 0 ? 1 : 0
-            color: Commons.Tokens.lineSoft
-          }
-
-          ListView {
-            id: resultList
-            width: parent.width
-            height: root.visibleRows * root.rowHeight
-            visible: root.rows.length > 0
+          TextInput {
+            id: searchInput
+            anchors.left: searchGlyph.right
+            anchors.leftMargin: Style.spacing.md
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            color: root.foreground
+            selectionColor: root.chosenFill
+            selectedTextColor: root.chosenInk
+            font.family: root.uiFamily
+            font.pixelSize: Style.font.title
+            font.letterSpacing: 0.2
             clip: true
-            interactive: true
-            model: root.rows
-            boundsBehavior: Flickable.StopAtBounds
+            focus: true
+            text: root.query
+            onTextChanged: if (text !== root.query) {
+              root.query = text
+              root.cursorActive = false
+            }
+            Keys.onReturnPressed: function(event) {
+              root.activate(root.cursorActive ? root.selectedIndex : 0)
+              event.accepted = true
+            }
+            Keys.onEnterPressed: function(event) {
+              root.activate(root.cursorActive ? root.selectedIndex : 0)
+              event.accepted = true
+            }
 
-            delegate: Rectangle {
-              id: row
-              required property int index
-              required property var modelData
-              width: ListView.view.width
-              height: root.rowHeight
-              radius: Math.min(root.cornerRadius, Style.space(4))
-              color: index === root.selectedIndex && root.cursorActive ? root.selectedBackground : "transparent"
-
-              MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: {
-                  root.selectedIndex = row.index
-                  root.cursorActive = true
-                }
-                onClicked: root.activate(row.index)
-              }
-
-              Item {
-                id: rowIcon
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                width: Style.font.iconLarge + Style.spacing.sm
-                height: width
-
-                Image {
-                  anchors.centerIn: parent
-                  width: Style.font.iconLarge
-                  height: width
-                  source: row.modelData.icon
-                  sourceSize.width: width
-                  sourceSize.height: height
-                  visible: row.modelData.icon.length > 0
-                  smooth: true
-                }
-
-                Text {
-                  anchors.centerIn: parent
-                  visible: row.modelData.icon.length === 0
-                  text: row.modelData.glyph
-                  font.family: "Symbols Nerd Font"
-                  font.pixelSize: Style.font.icon
-                  color: index === root.selectedIndex && root.cursorActive ? root.selectedText : root.foreground
-                  opacity: 0.8
-                }
-              }
-
-              Column {
-                anchors.left: rowIcon.right
-                anchors.leftMargin: Style.spacing.sm
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1
-
-                Text {
-                  width: parent.width
-                  text: row.modelData.name
-                  elide: Text.ElideRight
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  color: index === root.selectedIndex && root.cursorActive ? root.selectedText : root.foreground
-                }
-
-                Text {
-                  width: parent.width
-                  visible: row.modelData.subtext.length > 0
-                  text: row.modelData.subtext
-                  elide: Text.ElideRight
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  color: root.foreground
-                  opacity: 0.55
-                }
-              }
+            Text {
+              anchors.fill: parent
+              visible: searchInput.text.length === 0
+              verticalAlignment: Text.AlignVCenter
+              text: "Search apps, actions, =calc, ?web"
+              color: root.faint
+              font: searchInput.font
             }
           }
+        }
 
-          Item {
-            width: parent.width
-            height: Style.font.caption + Style.spacing.md * 2
+        Rectangle {
+          id: rule
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: searchRow.bottom
+          anchors.leftMargin: root.outerMargin
+          anchors.rightMargin: root.outerMargin
+          height: 1
+          color: root.rule
+        }
 
-            Text {
+        ListView {
+          id: resultList
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: rule.bottom
+          anchors.topMargin: root.rows.length > 0 ? Style.spacing.sm : 0
+          anchors.leftMargin: root.outerMargin
+          anchors.rightMargin: root.outerMargin
+          height: root.resultsHeight
+          visible: root.rows.length > 0
+          clip: true
+          interactive: true
+          model: root.rows
+          boundsBehavior: Flickable.StopAtBounds
+          spacing: 1
+
+          delegate: Rectangle {
+            id: row
+            required property int index
+            required property var modelData
+            width: ListView.view.width
+            height: root.rowHeight
+            radius: Math.min(root.radius, Style.space(4))
+            color: "transparent"
+
+            readonly property bool chosen: index === root.selectedIndex && root.cursorActive
+
+            Rectangle {
+              anchors.fill: parent
+              radius: parent.radius
+              color: row.chosen ? root.chosenFill : "transparent"
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              hoverEnabled: true
+              onEntered: {
+                root.selectedIndex = row.index
+                root.cursorActive = true
+              }
+              onClicked: root.activate(row.index)
+            }
+
+            Image {
+              id: rowIcon
               anchors.left: parent.left
+              anchors.leftMargin: Style.spacing.sm
               anchors.verticalCenter: parent.verticalCenter
-              text: root.rows.length > 0 ? root.rows.length + " result" + (root.rows.length === 1 ? "" : "s") : "No matches"
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              color: root.foreground
-              opacity: 0.5
+              width: Style.font.iconLarge
+              height: width
+              source: row.modelData.icon
+              sourceSize.width: width
+              sourceSize.height: height
+              visible: row.modelData.icon.length > 0
+              smooth: true
             }
 
             Text {
+              id: rowName
+              anchors.left: rowIcon.visible ? rowIcon.right : parent.left
+              anchors.leftMargin: rowIcon.visible ? Style.spacing.md : Style.spacing.sm
               anchors.right: parent.right
+              anchors.rightMargin: Style.spacing.sm
               anchors.verticalCenter: parent.verticalCenter
-              text: "↑↓ move · Enter open · Esc close"
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              color: root.foreground
-              opacity: 0.4
+              anchors.verticalCenterOffset: row.modelData.subtext.length > 0 ? -Style.font.caption * 0.45 : 0
+              text: row.modelData.name
+              elide: Text.ElideRight
+              font.family: root.uiFamily
+              font.pixelSize: Style.font.title
+              color: row.chosen ? root.chosenInk : root.foreground
             }
+
+            Text {
+              anchors.left: rowName.left
+              anchors.right: rowName.right
+              anchors.top: rowName.bottom
+              anchors.topMargin: 1
+              visible: row.modelData.subtext.length > 0
+              text: row.modelData.subtext
+              elide: Text.ElideRight
+              font.family: root.monoFamily
+              font.pixelSize: Math.max(9, Style.font.caption - 1)
+              font.letterSpacing: 0.3
+              color: row.chosen ? root.chosenInkDim : root.muted
+            }
+          }
+        }
+
+        Item {
+          id: footer
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          anchors.leftMargin: root.outerMargin
+          anchors.rightMargin: root.outerMargin
+          height: Style.space(40)
+
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: {
+              if (root.rows.length === 0) return root.query.length > 0 ? "NO MATCHES" : "TYPE TO SEARCH"
+              return root.rows.length + (root.rows.length === 1 ? " RESULT" : " RESULTS")
+            }
+            font.family: root.monoFamily
+            font.pixelSize: Math.max(9, Style.font.caption - 2)
+            font.letterSpacing: 1.3
+            color: root.faint
+          }
+
+          Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "↑↓ MOVE   ENTER OPEN   ESC CLOSE"
+            font.family: root.monoFamily
+            font.pixelSize: Math.max(9, Style.font.caption - 2)
+            font.letterSpacing: 1.1
+            color: root.faint
           }
         }
       }
     }
   }
-
 }

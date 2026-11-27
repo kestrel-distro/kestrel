@@ -4,14 +4,14 @@
 // calculator, "?" the web search, "/" the action catalogue. A bare query
 // searches apps first and falls back to actions, then the web.
 var ACTIONS = [
-  { id: "lock", name: "Lock screen", subtext: "Session", glyph: "\uf023", command: "kestrel-shell shell lock" },
-  { id: "power", name: "Power menu", subtext: "Session", glyph: "\uf011", command: "kestrel-menu toggle system" },
-  { id: "capture", name: "Screenshot", subtext: "Capture", glyph: "\uf030", command: "kestrel-capture-screenrecording --stop-recording || kestrel-screenshot" },
-  { id: "theme", name: "Theme menu", subtext: "Appearance", glyph: "\uf53f", command: "kestrel-menu toggle theme" },
-  { id: "settings", name: "Settings", subtext: "System", glyph: "\uf013", command: "kestrel-settings" },
-  { id: "terminal", name: "Terminal", subtext: "Apps", glyph: "\uf120", command: "kestrel-launch-terminal" },
-  { id: "files", name: "Files", subtext: "Apps", glyph: "\uf07b", command: "kestrel-launch-file-manager" },
-  { id: "browser", name: "Browser", subtext: "Apps", glyph: "\uf0ac", command: "kestrel-launch-browser" }
+  { id: "lock", name: "Lock screen", subtext: "Session", icon: "system-lock-screen", command: "kestrel-shell shell lock" },
+  { id: "power", name: "Power menu", subtext: "Session", icon: "system-shutdown", command: "kestrel-menu toggle system" },
+  { id: "capture", name: "Screenshot", subtext: "Capture", icon: "applets-screenshooter", command: "kestrel-capture-screenrecording --stop-recording || kestrel-screenshot" },
+  { id: "theme", name: "Theme menu", subtext: "Appearance", icon: "preferences-desktop-theme", command: "kestrel-menu toggle theme" },
+  { id: "settings", name: "Settings", subtext: "System", icon: "preferences-system", command: "kestrel-settings" },
+  { id: "terminal", name: "Terminal", subtext: "Apps", icon: "utilities-terminal", command: "kestrel-launch-terminal" },
+  { id: "files", name: "Files", subtext: "Apps", icon: "system-file-manager", command: "kestrel-launch-file-manager" },
+  { id: "browser", name: "Browser", subtext: "Apps", icon: "web-browser", command: "kestrel-launch-browser" }
 ]
 
 function sortedActions(query) {
