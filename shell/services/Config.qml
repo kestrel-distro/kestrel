@@ -381,7 +381,7 @@ Singleton {
             property real frameOpacity: 1
             property real frameThickness: 0
             property real frameCorner: 0
-            property string barBackground: "#1b3a4a"
+            property string barBackground: "#08151c"
             property string clockAccentColor: "#7ac0d8"
             property real osdRadius: 0
             property real osdOpacity: 1

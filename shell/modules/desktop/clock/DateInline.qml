@@ -51,7 +51,7 @@ Item {
         }
         Text {
             text: date.dp.month + " " + date.dp.dom
-            color: date.inkSoft
+            color: date.accent
             font.family: Theme.font
             font.pixelSize: date.px
             font.weight: Font.Medium
